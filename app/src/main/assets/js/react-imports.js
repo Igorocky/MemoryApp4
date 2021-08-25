@@ -14,13 +14,6 @@ function reFactory(elemType) {
 }
 
 const MaterialUI = window['MaterialUI']
-const {
-    BrowserRouter,
-    Redirect,
-    Route,
-    Switch,
-    useLocation
-} = window["ReactRouterDOM"]
 const MuiColors = MaterialUI.colors
 
 const DIRECTION = {row: "row", column: "column",}
@@ -328,6 +321,18 @@ function useConfirmActionDialog() {
     return [openConfirmActionDialog, closeConfirmActionDialog, renderConfirmActionDialog]
 }
 
-function useQuery() {
-    return new URLSearchParams(useLocation().search);
+/**
+ * @param url:string
+ */
+function parseSearchParams(url) {
+    if (hasNoValue(url)) {
+        return {}
+    }
+    const startIdx = url.indexOf('?')
+    const params = new URLSearchParams(startIdx >= 0 ? url.substring(startIdx+1,url.length) : '')
+    const result = {}
+    for(const [key, value] of params.entries()) {
+        result[key] = value
+    }
+    return result
 }

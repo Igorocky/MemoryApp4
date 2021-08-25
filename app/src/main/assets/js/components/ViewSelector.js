@@ -2,18 +2,30 @@
 
 const BOOK_VIEW_BASE_PATH = '/bookView'
 
-const VIEW_URLS = {
-    bookSelector: '/',
-    bookView: ({bookId}) => `${BOOK_VIEW_BASE_PATH}?bookId=${bookId}`,
+const VIEW_NAME_ATTR = '_view'
+function createQueryObjectForView(viewName, params) {
+    return {[VIEW_NAME_ATTR]:viewName, ...(hasValue(params)?params:{})}
 }
 
-const VIEWS = [
-    {name:"BookSelector", component: BookSelector, path: VIEW_URLS.bookSelector},
-]
-
-function getViewAbsoluteUrl(relUrl) {
-    const location = window.location
-    return location.protocol + "//" + location.host + relUrl
+const HOME_PAGE_VIEW = 'homePage'
+const PAGE_1_VIEW = 'page1'
+const PAGE_2_VIEW = 'page2'
+const VIEWS = {
+    [HOME_PAGE_VIEW]:{
+        render({query, openView, setPageTitle}) {
+            return re(HomePage,{openView, setPageTitle})
+        }
+    },
+    [PAGE_1_VIEW]:{
+        render({query, openView, setPageTitle}) {
+            return re(Page1,{openView, setPageTitle})
+        }
+    },
+    [PAGE_2_VIEW]:{
+        render({query, openView, setPageTitle}) {
+            return re(Page2,{openView, setPageTitle})
+        }
+    },
 }
 
 const ViewSelector = ({}) => {
@@ -21,9 +33,7 @@ const ViewSelector = ({}) => {
     const [environmentName, setEnvironmentName] = useState(null)
     const [pageTitle, setPageTitle] = useState(null)
 
-//    useEffect(() => {
-//        be.getEnvironmentName().then(envName => setEnvironmentName(envName))
-//    }, [])
+    const query = parseSearchParams(currentViewUrl)
 
     useEffect(() => {
         updatePageTitle()
@@ -33,37 +43,25 @@ const ViewSelector = ({}) => {
         document.title = `${environmentName == 'PROD' ? '' : '{' + environmentName + '} - '}${pageTitle}`
     }
 
-    function getViewRoutes() {
-        return VIEWS.map(view => re(Route, {
-            key: view.path,
-            path: view.path,
-            exact: true,
-            render: props => re(view.component, {
-                ...props,
-                ...(view.props?view.props:{}),
-                openView: url => setCurrentViewUrl(url),
+    function renderSelectedView() {
+        const selectedView = VIEWS[query[VIEW_NAME_ATTR]]??VIEWS[HOME_PAGE_VIEW]
+        if (selectedView) {
+            return selectedView.render({
+                query,
+                openView: (viewName,params) => setCurrentViewUrl(window.location.pathname + '?' + new URLSearchParams(createQueryObjectForView(viewName,params)).toString()),
                 setPageTitle: str => setPageTitle(str),
             })
-        }))
+        }
     }
-
-    function renderRedirectElem(url) {
-        return url ? re(Redirect,{key: url, to: url}) : null
-    }
-
-    console.log('currentViewUrl', currentViewUrl)
 
     if (currentViewUrl) {
-        return RE.Container.col.top.left({},{},
-                    `currentViewUrl: ${currentViewUrl}`,
-                    re(BrowserRouter, {},
-                        re(Switch, {}, getViewRoutes()),
-                        renderRedirectElem(currentViewUrl)
-                    )
-                )
+        return RE.Container.col.top.left({}, {},
+            // `currentViewUrl: ${currentViewUrl}`,
+            renderSelectedView()
+        )
     } else {
         const newViewUrl = window.location.pathname + window.location.search
         setCurrentViewUrl(newViewUrl)
-        return renderRedirectElem(newViewUrl)
+        return "Starting..."
     }
 }
