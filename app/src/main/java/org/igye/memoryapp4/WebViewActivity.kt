@@ -12,7 +12,9 @@ import androidx.webkit.WebViewAssetLoader.ResourcesPathHandler
 import androidx.webkit.WebViewClientCompat
 
 class WebViewActivity : AppCompatActivity() {
+    private val TAG = "MemoryApp4-WebViewActivity"
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(TAG, "Starting WebViewActivity")
         super.onCreate(savedInstanceState)
         // TODO: 8/25/2021 log warning if supportActionBar == null
         supportActionBar?.hide()
@@ -20,8 +22,8 @@ class WebViewActivity : AppCompatActivity() {
         webView.settings.javaScriptEnabled = true
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                Log.d(
-                    "MemoryApp4", consoleMessage.message() + " -- From line " +
+                Log.i(
+                    TAG, consoleMessage.message() + " -- From line " +
                             consoleMessage.lineNumber() + " of " + consoleMessage.sourceId()
                 )
                 return true
