@@ -8,6 +8,24 @@ const SPACE_KEY_CODE = 32
 const PAGE_DOWN_KEY_CODE = 34
 const PAGE_UP_KEY_CODE = 33
 
+const BE_CALLBACKS = []
+let BE_CALLBACK_CNT = 0
+function createFeCallback(dataHandler) {
+    let id = BE_CALLBACK_CNT++
+    BE_CALLBACKS.push({
+        id,dataHandler
+    })
+    return id
+}
+function callFeCallback(id,dataStr) {
+    const idx = BE_CALLBACKS.findIndex(cb => cb.id === id)
+    if (idx >= 0) {
+        let callBack = BE_CALLBACKS[idx]
+        BE_CALLBACKS.splice(idx,1)
+        callBack.dataHandler(dataStr)
+    }
+}
+
 function hasValue(variable) {
     return variable !== undefined && variable !== null
 }
