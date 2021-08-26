@@ -5,6 +5,7 @@ function Page1({openView,setPageTitle}) {
 
     useEffect(() => {
         BE.add(26, createFeCallback(res => setCnt(res)))
+        setCnt(1)
     }, [])
 
     return RE.Container.col.top.center({style:{marginTop:'200px'}},{},
