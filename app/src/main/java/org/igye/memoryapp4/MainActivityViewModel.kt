@@ -9,11 +9,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivityViewModel: ViewModel() {
     var webView: WebView? = null
+    private val gson = Gson()
 
     fun getWebView(appContext: Context?): WebView {
         if (webView == null) {
@@ -40,17 +42,30 @@ class MainActivityViewModel: ViewModel() {
         return this.webView!!
     }
 
+    data class AddArgs(val name:String)
     @JavascriptInterface
-    fun add(cbId:Int, a:Int) = viewModelScope.launch(Dispatchers.Default) {
-        val res = a + 3
-        Thread.sleep(3000)
-        invokeJs(cbId,res)
+    fun add(cbId:Int, a:Int, b:String) = viewModelScope.launch(Dispatchers.Default) {
+        val res = a + 3 + gson.fromJson(b,AddArgs::class.java).name.length
+        Thread.sleep(1000)
+        callFeCallback(cbId,res)
     }
 
-    private fun invokeJs(callBackId: Int, data: Any) {
+    @JavascriptInterface
+    fun update(cbId:Int, addArgs:String) = viewModelScope.launch(Dispatchers.Default) {
+        val dto = gson.fromJson(addArgs, AddArgs::class.java)
+        val res = dto.copy(name = dto.name + "@@@@@@@@@#")
+        Thread.sleep(2000)
+        callFeCallbackForDto(cbId,res)
+    }
+
+    private fun callFeCallback(callBackId: Int, result: Any) {
         webView!!.post {
-            webView!!.loadUrl("javascript:callFeCallback($callBackId, $data)")
+            webView!!.loadUrl("javascript:callFeCallback($callBackId, $result)")
         }
+    }
+
+    private fun callFeCallbackForDto(callBackId: Int, dto: Any) {
+        callFeCallback(callBackId, gson.toJson(dto))
     }
 
 }

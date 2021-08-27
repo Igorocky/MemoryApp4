@@ -17,12 +17,12 @@ function createFeCallback(resultHandler) {
     })
     return id
 }
-function callFeCallback(cbId,dataStr) {
+function callFeCallback(cbId,result) {
     const idx = BE_CALLBACKS.findIndex(cb => cb.id === cbId)
     if (idx >= 0) {
         let callBack = BE_CALLBACKS[idx]
         BE_CALLBACKS.splice(idx,1)
-        callBack.resultHandler(dataStr)
+        callBack.resultHandler(result)
     }
 }
 function createBePromise(functionName, ...args) {
@@ -30,8 +30,12 @@ function createBePromise(functionName, ...args) {
         BE[functionName](createFeCallback(resolve), ...args)
     })
 }
+function createSingleDtoArgBeFunction(functionName) {
+    return async dto => createBePromise(functionName, JSON.stringify(dto))
+}
 const be = {
-    add: a => createBePromise('add', a)
+    add: async (a,b) => createBePromise('add', a, JSON.stringify(b)),
+    update: createSingleDtoArgBeFunction('update'),
 }
 
 function hasValue(variable) {
