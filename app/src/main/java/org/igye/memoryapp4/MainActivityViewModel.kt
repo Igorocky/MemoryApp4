@@ -41,7 +41,7 @@ class MainActivityViewModel: ViewModel() {
     }
 
     @JavascriptInterface
-    fun add(a:Int, cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+    fun add(cbId:Int, a:Int) = viewModelScope.launch(Dispatchers.Default) {
         val res = a + 3
         Thread.sleep(3000)
         invokeJs(cbId,res)

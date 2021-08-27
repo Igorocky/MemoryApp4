@@ -10,20 +10,28 @@ const PAGE_UP_KEY_CODE = 33
 
 const BE_CALLBACKS = []
 let BE_CALLBACK_CNT = 0
-function createFeCallback(dataHandler) {
+function createFeCallback(resultHandler) {
     let id = BE_CALLBACK_CNT++
     BE_CALLBACKS.push({
-        id,dataHandler
+        id,resultHandler
     })
     return id
 }
-function callFeCallback(id,dataStr) {
-    const idx = BE_CALLBACKS.findIndex(cb => cb.id === id)
+function callFeCallback(cbId,dataStr) {
+    const idx = BE_CALLBACKS.findIndex(cb => cb.id === cbId)
     if (idx >= 0) {
         let callBack = BE_CALLBACKS[idx]
         BE_CALLBACKS.splice(idx,1)
-        callBack.dataHandler(dataStr)
+        callBack.resultHandler(dataStr)
     }
+}
+function createBePromise(functionName, ...args) {
+    return new Promise((resolve, reject) => {
+        BE[functionName](createFeCallback(resolve), ...args)
+    })
+}
+const be = {
+    add: a => createBePromise('add', a)
 }
 
 function hasValue(variable) {

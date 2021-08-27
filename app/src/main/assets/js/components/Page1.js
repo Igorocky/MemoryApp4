@@ -4,8 +4,8 @@ function Page1({openView,setPageTitle}) {
     const [cnt, setCnt] = useState(0)
 
     useEffect(() => {
-        BE.add(26, createFeCallback(res => setCnt(res)))
-        setCnt(1)
+        be.add(26).then(res => setCnt(res))
+        setCnt(2)
     }, [])
 
     return RE.Container.col.top.center({style:{marginTop:'200px'}},{},
