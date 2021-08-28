@@ -8,21 +8,21 @@ const SPACE_KEY_CODE = 32
 const PAGE_DOWN_KEY_CODE = 34
 const PAGE_UP_KEY_CODE = 33
 
-const BE_CALLBACKS = []
-let BE_CALLBACK_CNT = 0
+const FE_CALLBACKS = []
+let FE_CALLBACK_CNT = 0
 function createFeCallback(resultHandler) {
-    let id = BE_CALLBACK_CNT++
-    BE_CALLBACKS.push({
+    let id = FE_CALLBACK_CNT++
+    FE_CALLBACKS.push({
         id,resultHandler
     })
     return id
 }
 function callFeCallback(cbId,result) {
-    const idx = BE_CALLBACKS.findIndex(cb => cb.id === cbId)
+    const idx = FE_CALLBACKS.findIndex(cb => cb.id === cbId)
     if (idx >= 0) {
-        let callBack = BE_CALLBACKS[idx]
-        BE_CALLBACKS.splice(idx,1)
-        callBack.resultHandler(result)
+        let callback = FE_CALLBACKS[idx]
+        FE_CALLBACKS.splice(idx,1)
+        callback.resultHandler(result)
     }
 }
 function createBePromise(functionName, ...args) {

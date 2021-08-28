@@ -14,7 +14,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivityViewModel: ViewModel() {
-    var webView: WebView? = null
+    private var webView: WebView? = null
+    private var dataManager: DataManager? = null
     private val gson = Gson()
 
     fun getWebView(appContext: Context?): WebView {
@@ -38,8 +39,14 @@ class MainActivityViewModel: ViewModel() {
             webView.addJavascriptInterface(this, "BE")
             webView.loadUrl("https://appassets.androidplatform.net/assets/index.html")
             this.webView = webView
+
+            this.dataManager = DataManager(appContext)
         }
         return this.webView!!
+    }
+
+    override fun onCleared() {
+        dataManager?.close()
     }
 
     data class AddArgs(val name:String)
@@ -53,7 +60,7 @@ class MainActivityViewModel: ViewModel() {
     @JavascriptInterface
     fun update(cbId:Int, addArgs:String) = viewModelScope.launch(Dispatchers.Default) {
         val dto = gson.fromJson(addArgs, AddArgs::class.java)
-        val res = dto.copy(name = dto.name + "@@@@@@@@@#")
+        val res = dto.copy(name = dto.name + "@@@@@@@@@#" + (dataManager!!.getAllNotes().size + 1))
         Thread.sleep(2000)
         callFeCallbackForDto(cbId,res)
     }
