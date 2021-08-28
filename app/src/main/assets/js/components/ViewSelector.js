@@ -8,12 +8,18 @@ function createQueryObjectForView(viewName, params) {
 }
 
 const HOME_PAGE_VIEW = 'homePage'
+const DEBUG_VIEW = 'debug'
 const PAGE_1_VIEW = 'page1'
 const PAGE_2_VIEW = 'page2'
 const VIEWS = {
     [HOME_PAGE_VIEW]:{
         render({query, openView, setPageTitle}) {
             return re(HomePage,{openView, setPageTitle})
+        }
+    },
+    [DEBUG_VIEW]:{
+        render({query, openView, setPageTitle}) {
+            return re(DebugPage,{openView, setPageTitle})
         }
     },
     [PAGE_1_VIEW]:{

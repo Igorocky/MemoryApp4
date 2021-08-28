@@ -49,6 +49,12 @@ class MainActivityViewModel: ViewModel() {
         dataManager?.close()
     }
 
+    @JavascriptInterface
+    fun debug(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+        dataManager!!.debug()
+        callFeCallback(cbId,null)
+    }
+
     data class AddArgs(val name:String)
     @JavascriptInterface
     fun add(cbId:Int, a:Int, b:String) = viewModelScope.launch(Dispatchers.Default) {
@@ -65,7 +71,7 @@ class MainActivityViewModel: ViewModel() {
         callFeCallbackForDto(cbId,res)
     }
 
-    private fun callFeCallback(callBackId: Int, result: Any) {
+    private fun callFeCallback(callBackId: Int, result: Any?) {
         webView!!.post {
             webView!!.loadUrl("javascript:callFeCallback($callBackId, $result)")
         }

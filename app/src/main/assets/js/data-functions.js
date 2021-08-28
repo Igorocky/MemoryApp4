@@ -33,9 +33,15 @@ function createBePromise(functionName, ...args) {
 function createSingleDtoArgBeFunction(functionName) {
     return async dto => createBePromise(functionName, JSON.stringify(dto))
 }
+function createBeFunction(functionName) {
+    return async function(...args) {
+        return createBePromise(functionName, ...args)
+    }
+}
 const be = {
     add: async (a,b) => createBePromise('add', a, JSON.stringify(b)),
     update: createSingleDtoArgBeFunction('update'),
+    debug: createBeFunction('debug'),
 }
 
 function hasValue(variable) {

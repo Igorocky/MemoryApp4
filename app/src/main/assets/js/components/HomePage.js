@@ -2,8 +2,9 @@
 
 function HomePage({openView,setPageTitle}) {
     const [availableViews, setAvailableViews] = useState([
+        {name:DEBUG_VIEW},
         {name:PAGE_1_VIEW},
-        {name:PAGE_2_VIEW}
+        {name:PAGE_2_VIEW},
     ])
 
     useEffect(() => {

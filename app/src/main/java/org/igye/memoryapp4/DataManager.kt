@@ -1,11 +1,14 @@
 package org.igye.memoryapp4
 
 import android.content.Context
+import android.os.Environment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
-class DataManager(context: Context) {
-    private val repo = Repository(context)
+class DataManager(private val context: Context) {
+    private val dbName = "memory-app-4-db"
+    private val repo = Repository(context, dbName)
     private val t = DB_V1
 
 
@@ -25,8 +28,20 @@ class DataManager(context: Context) {
                 ))
             }
         }
+        cursor.close()
         result
     }
 
+    suspend fun doBackup() = withContext(Dispatchers.IO) {
+        context.getDatabasePath(dbName).copyTo(
+            target = File(context.getExternalFilesDir(null)!!.absolutePath + "/$dbName-backup"),
+            overwrite = true
+        )
+    }
+
     fun close() = repo.close()
+
+    suspend fun debug() {
+        doBackup()
+    }
 }

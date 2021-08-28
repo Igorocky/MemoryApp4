@@ -5,7 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import androidx.core.database.sqlite.transaction
 
-class Repository(context: Context) : SQLiteOpenHelper(context, "memory-app-4-db", null, 1) {
+class Repository(context: Context, dbName: String) : SQLiteOpenHelper(context, dbName, null, 1) {
     val t = DB_V1
     override fun onCreate(db: SQLiteDatabase) {
         db.transaction {
