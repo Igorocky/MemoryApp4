@@ -10,9 +10,10 @@ class Repository(context: Context, dbName: String) : SQLiteOpenHelper(context, d
     override fun onCreate(db: SQLiteDatabase) {
         db.transaction {
             db.execSQL("""
-                    CREATE TABLE ${t.notes.tableName} (
-                        ${t.notes.id} INTEGER PRIMARY KEY,
-                        ${t.notes.text} TEXT
+                    CREATE TABLE ${t.tags.tableName} (
+                        ${t.tags.id} integer primary key,
+                        ${t.tags.createdAt} integer not null,
+                        ${t.tags.name} text unique not null
                     )
             """)
         }
@@ -24,10 +25,11 @@ class Repository(context: Context, dbName: String) : SQLiteOpenHelper(context, d
 }
 
 object DB_V1 {
-    val notes = NotesTable
-    object NotesTable {
-        val tableName = "NOTES"
+    val tags = TagsTable
+    object TagsTable {
+        val tableName = "TAGS"
         val id = "id"
-        val text = "text"
+        val name = "name"
+        val createdAt = "createdAt"
     }
 }

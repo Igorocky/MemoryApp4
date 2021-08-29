@@ -38,7 +38,12 @@ function createBeFunction(functionName) {
 
 const be = {
     add: async (a,b) => createBePromise('add', a, JSON.stringify(b)),
-    update: createSingleDtoArgBeFunction('update'),
+
+    saveNewTag: createSingleDtoArgBeFunction('saveNewTag'),
+    getAllTags: createBeFunction('getAllTags'),
+    updateTag: createSingleDtoArgBeFunction('updateTag'),
+    deleteTag: createSingleDtoArgBeFunction('deleteTag'),
+
     debug: createBeFunction('debug'),
 }
 

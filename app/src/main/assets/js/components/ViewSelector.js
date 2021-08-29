@@ -71,7 +71,7 @@ const ViewSelector = ({}) => {
             {iconName:"sell", onClick: () => openView(TAGS_VIEW), style:{backgroundColor:bgColor(TAGS_VIEW)}},
             {symbol:"1", onClick: () => openView(PAGE_1_VIEW), style:{backgroundColor:bgColor(PAGE_1_VIEW)}},
             {symbol:"2", onClick: () => openView(PAGE_2_VIEW), style:{backgroundColor:bgColor(PAGE_2_VIEW)}},
-            {symbol:"d", onClick: () => openView(DEBUG_VIEW), style:{backgroundColor:bgColor(DEBUG_VIEW)}},
+            {iconName:"adb", onClick: () => openView(DEBUG_VIEW), style:{backgroundColor:bgColor(DEBUG_VIEW)}},
             {iconName:"more_horiz", onClick: () => setShowMoreControlButtons(old => !old)},
         ]]
         if (showMoreControlButtons) {

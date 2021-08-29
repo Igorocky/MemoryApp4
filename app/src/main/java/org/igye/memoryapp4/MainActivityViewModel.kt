@@ -55,20 +55,29 @@ class MainActivityViewModel: ViewModel() {
         callFeCallback(cbId,null)
     }
 
-    data class AddArgs(val name:String)
+    data class SaveNewTagArgs(val name:String)
     @JavascriptInterface
-    fun add(cbId:Int, a:Int, b:String) = viewModelScope.launch(Dispatchers.Default) {
-        val res = a + 3 + gson.fromJson(b,AddArgs::class.java).name.length
-        Thread.sleep(1000)
-        callFeCallback(cbId,res)
+    fun saveNewTag(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+        val newTag = gson.fromJson(args, SaveNewTagArgs::class.java)
+        callFeCallbackForDto(cbId,dataManager!!.saveNewTag(newTag.name))
+    }
+
+    data class DeleteTagArgs(val id:Long)
+    @JavascriptInterface
+    fun deleteTag(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+        callFeCallbackForDto(cbId,dataManager!!.deleteTag(id = gson.fromJson(args, DeleteTagArgs::class.java).id))
+    }
+
+    data class UpdateTagArgs(val id:Long, val name: String)
+    @JavascriptInterface
+    fun updateTag(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+        val args = gson.fromJson(args, UpdateTagArgs::class.java)
+        callFeCallbackForDto(cbId,dataManager!!.updateTag(id = args.id, nameArg = args.name))
     }
 
     @JavascriptInterface
-    fun update(cbId:Int, addArgs:String) = viewModelScope.launch(Dispatchers.Default) {
-        val dto = gson.fromJson(addArgs, AddArgs::class.java)
-        val res = dto.copy(name = dto.name + "@@@@@@@@@#" + (dataManager!!.getAllNotes().size + 1))
-        Thread.sleep(2000)
-        callFeCallbackForDto(cbId,res)
+    fun getAllTags(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+        callFeCallbackForDto(cbId,dataManager!!.getAllTags())
     }
 
     private fun callFeCallback(callBackId: Int, result: Any?) {

@@ -3,6 +3,10 @@
 const UpdateTagCmp = ({tag,onSave,onCancel}) => {
     const [tagName, setTagName] = useState(tag.name)
 
+    function save() {
+        onSave({name: tagName})
+    }
+
     return RE.Container.row.left.center({},{},
         RE.IconButton({onClick:onCancel},
             RE.Icon({style:{color:'black'}}, 'highlight_off')
@@ -13,15 +17,19 @@ const UpdateTagCmp = ({tag,onSave,onCancel}) => {
             autoFocus:true,
             size:'small',
             onChange: event => {
-                const newName = event.nativeEvent.target.value.replaceAll(' ', '')
-                if (newName != tagName) {
+                const newName = event.nativeEvent.target.value
+                if (newName != tagName && newName.indexOf(' ') < 0) {
                     setTagName(newName)
                 }
-            }
+            },
+            onKeyUp: event =>
+                event.nativeEvent.keyCode == 13 ? save()
+                    : event.nativeEvent.keyCode == 27 ? onCancel()
+                        : null,
         }),
         RE.IconButton(
             {
-                onClick: () => onSave({name: tagName})
+                onClick: save
             },
             RE.Icon({style:{color:'black'}}, 'save')
         )

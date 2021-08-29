@@ -45,7 +45,9 @@ const TagsView = ({openView,setPageTitle}) => {
                 onSave: async ({name}) => {
                     const res = await be.updateTag({id: tag.id, name})
                     if (!res.err) {
-                        setAllTags(prev => prev.map(t=>t.id!=tag.id?t:{...t,name:name}))
+                        if (res.data > 0) {
+                            setAllTags(prev => prev.map(t=>t.id!=tag.id?t:{...t,name:name}))
+                        }
                         setEditMode(false)
                     } else {
                         showErrorMessage(res.err.msg)
