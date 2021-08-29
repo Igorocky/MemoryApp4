@@ -36,7 +36,7 @@ const ConfirmActionDialog = ({confirmText, onCancel, startActionBtnText, startAc
     function drawActionButtons() {
         if (!actionIsDone) {
             return RE.Fragment({},
-                RE.Button({onClick: onCancel, disabled: actionIsInProgress}, "Cancel"),
+                onCancel?RE.Button({onClick: onCancel, disabled: actionIsInProgress}, "Cancel"):null,
                 re(ButtonWithCircularProgress, {buttonText: startActionBtnText, startAction: doStartAction})
             )
         } else {

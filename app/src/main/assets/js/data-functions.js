@@ -8,42 +8,6 @@ const SPACE_KEY_CODE = 32
 const PAGE_DOWN_KEY_CODE = 34
 const PAGE_UP_KEY_CODE = 33
 
-const FE_CALLBACKS = []
-let FE_CALLBACK_CNT = 0
-function createFeCallback(resultHandler) {
-    let id = FE_CALLBACK_CNT++
-    FE_CALLBACKS.push({
-        id,resultHandler
-    })
-    return id
-}
-function callFeCallback(cbId,result) {
-    const idx = FE_CALLBACKS.findIndex(cb => cb.id === cbId)
-    if (idx >= 0) {
-        let callback = FE_CALLBACKS[idx]
-        FE_CALLBACKS.splice(idx,1)
-        callback.resultHandler(result)
-    }
-}
-function createBePromise(functionName, ...args) {
-    return new Promise((resolve, reject) => {
-        BE[functionName](createFeCallback(resolve), ...args)
-    })
-}
-function createSingleDtoArgBeFunction(functionName) {
-    return async dto => createBePromise(functionName, JSON.stringify(dto))
-}
-function createBeFunction(functionName) {
-    return async function(...args) {
-        return createBePromise(functionName, ...args)
-    }
-}
-const be = {
-    add: async (a,b) => createBePromise('add', a, JSON.stringify(b)),
-    update: createSingleDtoArgBeFunction('update'),
-    debug: createBeFunction('debug'),
-}
-
 function hasValue(variable) {
     return variable !== undefined && variable !== null
 }
@@ -157,6 +121,22 @@ function removeAtIdx(arr,idx) {
     arr.splice(idx,1)
     return res
 
+}
+
+function removeIf(arr,predicate) {
+    if (Array.isArray(arr)) {
+        let removedCnt = 0
+        for (let i = 0; i < arr.length; i++) {
+            if (predicate(arr[i])) {
+                removeAtIdx(arr,i)
+                removedCnt++
+                i--
+            }
+        }
+        return removedCnt
+    } else {
+        return 0
+    }
 }
 
 function nextRandomElem({allElems,counts}) {
