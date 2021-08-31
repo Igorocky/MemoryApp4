@@ -1,6 +1,6 @@
 "use strict";
 
-const TagsView = ({openView,setPageTitle}) => {
+const TagsView = ({query,openView,setPageTitle}) => {
 
     const [allTags, setAllTags] = useState(null)
     const [focusedTagId, setFocusedTagId] = useState(null)

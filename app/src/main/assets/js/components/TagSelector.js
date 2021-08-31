@@ -1,45 +1,57 @@
 'use strict';
 
-const TagSelector = ({allKnownTags,selectedTags,onTagRemoved,onTagSelected,renderTextField = true, tagsLabel}) => {
-    const [editedTag, setEditedTag] = useState('')
+const TagSelector = ({allTags, selectedTags, onTagSelected, onTagRemoved, label, color}) => {
 
-    function renderTags() {
-        return allKnownTags.map(tag => RE.Chip({
-            key:tag,
-            variant:'outlined',
-            color:selectedTags.includes(tag)?'primary':undefined,
-            size:'small',
-            onClick: !selectedTags.includes(tag) ? () => onTagSelected(tag) : undefined,
-            onDelete: selectedTags.includes(tag) ? () => onTagRemoved(tag) : undefined,
-            label: tag,
-            style: {marginRight:'5px',marginLeft:'10px', marginTop:hasValue(tagsLabel)?'0px':'15px'}
-        }))
+    const [filterText, setFilterText] = useState('')
+
+    function renderSelectedTags() {
+        return RE.Fragment({},
+            selectedTags.map(tag => RE.Chip({
+                style: {marginRight:'10px', marginBottom:'5px'},
+                key:tag.id,
+                variant:'outlined',
+                size:'small',
+                onDelete: () => onTagRemoved(tag),
+                label: tag.name,
+                color:color??'default',
+            }))
+        )
     }
 
-    return RE.Paper({style:{padding:hasValue(tagsLabel)?'3px':'0px'}},
-        renderTextField?RE.TextField(
+    function renderTagFilter() {
+        return RE.TextField(
             {
-                variant: 'outlined', label: 'Tag',
-                style: {width: '100px'},
-                onChange: event => {
-                    const editedTag = event.nativeEvent.target.value
-                    setEditedTag(editedTag)
-                },
-                onKeyUp: event => {
-                    if (event.nativeEvent.keyCode == 13) {
-                        const newTag = editedTag.trim()
-                        if (newTag.length) {
-                            onTagSelected(newTag)
-                            setEditedTag('')
-                        }
-                    } else if (event.nativeEvent.keyCode == 27) {
-                        setEditedTag('')
-                    }
-                },
-                value: editedTag
+                variant: 'outlined',
+                style: {width: 200},
+                size: 'small',
+                label,
+                onChange: event => setFilterText(event.nativeEvent.target.value.trim().toLowerCase())
             }
-        ):null,
-        hasValue(tagsLabel)?tagsLabel:'',
-        renderTags()
+        )
+    }
+
+    function renderFilteredTags() {
+        const filteredTags = filterText.length == 0 ? allTags : allTags.filter(tag => tag.name.toLowerCase().indexOf(filterText) >= 0)
+        if (filteredTags.length == 0) {
+            return 'No tags match the search criteria'
+        } else {
+            return RE.Container.row.left.center(
+                {style:{maxHeight:'250px', overflow:'auto'}},
+                {style:{margin:'3px'}},
+                filteredTags.map(tag => RE.Chip({
+                    style: {marginRight:'3px'},
+                    variant:'outlined',
+                    size:'small',
+                    onClick: () => onTagSelected(tag),
+                    label: tag.name,
+                }))
+            )
+        }
+    }
+
+    return RE.Container.col.top.left({},{style:{margin:'3px'}},
+        renderSelectedTags(),
+        renderTagFilter(),
+        renderFilteredTags()
     )
 }

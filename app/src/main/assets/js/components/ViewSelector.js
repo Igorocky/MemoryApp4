@@ -10,6 +10,7 @@ const DEBUG_VIEW = 'debug'
 const PAGE_1_VIEW = 'page1'
 const PAGE_2_VIEW = 'page2'
 const TAGS_VIEW = 'tags'
+const SEARCH_NOTES_VIEW = 'searchNotes'
 const VIEWS = {}
 function addView({name, component}) {
     VIEWS[name] = {
@@ -24,6 +25,7 @@ addView({name: DEBUG_VIEW, component: DebugPage})
 addView({name: PAGE_1_VIEW, component: Page1})
 addView({name: PAGE_2_VIEW, component: Page2})
 addView({name: TAGS_VIEW, component: TagsView})
+addView({name: SEARCH_NOTES_VIEW, component: SearchNotesView})
 
 const ViewSelector = ({}) => {
     const [currentViewUrl, setCurrentViewUrl] = useState(null)
@@ -38,7 +40,7 @@ const ViewSelector = ({}) => {
     }, [environmentName, pageTitle])
 
     useEffect(() => {
-        openView(TAGS_VIEW)
+        openView(SEARCH_NOTES_VIEW)
     }, [])
 
     function updatePageTitle() {
@@ -69,6 +71,7 @@ const ViewSelector = ({}) => {
         const bgColor = viewName => viewName == selectedViewName ? '#00ff72' : undefined
         const buttons = [[
             {iconName:"sell", onClick: () => openView(TAGS_VIEW), style:{backgroundColor:bgColor(TAGS_VIEW)}},
+            {iconName:"search", onClick: () => openView(SEARCH_NOTES_VIEW), style:{backgroundColor:bgColor(SEARCH_NOTES_VIEW)}},
             {symbol:"1", onClick: () => openView(PAGE_1_VIEW), style:{backgroundColor:bgColor(PAGE_1_VIEW)}},
             {symbol:"2", onClick: () => openView(PAGE_2_VIEW), style:{backgroundColor:bgColor(PAGE_2_VIEW)}},
             {iconName:"adb", onClick: () => openView(DEBUG_VIEW), style:{backgroundColor:bgColor(DEBUG_VIEW)}},
