@@ -26,10 +26,18 @@ const TagsView = ({query,openView,setPageTitle}) => {
             return RE.table({},
                 RE.tbody({},
                     allTags.map(tag =>
-                        RE.tr({key:tag.id, onClick: () => setFocusedTagId(tag.id), style:{backgroundColor: focusedTagId === tag.id && !editMode ? 'lightgrey' : undefined}},
+                        RE.tr({key:tag.id, onClick: () => setFocusedTagId(prev=> prev==tag.id?null:tag.id), style:{backgroundColor: focusedTagId === tag.id && !editMode ? 'lightgrey' : undefined}},
                             RE.td({}, renderTag({tag})),
-                            RE.td({}, focusedTagId === tag.id && !editMode ? iconButton({iconName:'edit', onClick:() => setEditMode(true)}) : null),
-                            RE.td({}, focusedTagId === tag.id && !editMode ? iconButton({iconName:'delete', onClick:() => deleteTag({tag})}) : null),
+                            RE.td({},
+                                focusedTagId === tag.id && !editMode
+                                    ? iconButton({iconName:'edit', onClick:e => {e.stopPropagation();setEditMode(true)}})
+                                    : null
+                            ),
+                            RE.td({},
+                                focusedTagId === tag.id && !editMode
+                                    ? iconButton({iconName:'delete', onClick:e => {e.stopPropagation();deleteTag({tag})}})
+                                    : null
+                            ),
                         )
                     )
                 )
@@ -41,8 +49,12 @@ const TagsView = ({query,openView,setPageTitle}) => {
         if (focusedTagId === tag.id && editMode) {
             return re(UpdateTagCmp,{
                 tag,
-                onCancel: () => setEditMode(false),
-                onSave: async ({name}) => {
+                onCancel: e => {
+                    e?.stopPropagation();
+                    setEditMode(false)
+                },
+                onSave: async ({event,name}) => {
+                    event?.stopPropagation();
                     const res = await be.updateTag({id: tag.id, name})
                     if (!res.err) {
                         if (res.data > 0) {

@@ -3,8 +3,8 @@
 const UpdateTagCmp = ({tag,onSave,onCancel}) => {
     const [tagName, setTagName] = useState(tag.name)
 
-    function save() {
-        onSave({name: tagName})
+    function save(event) {
+        onSave({event, name: tagName})
     }
 
     return RE.Container.row.left.center({},{},
