@@ -147,7 +147,7 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
         return RE.Paper({},
             RE.Container.row.left.center({},{},
                 focusedNote?.id === note.id ? iconButton({iconName:'edit',onClick:e=> {e.stopPropagation();setEditNoteMode(true)}}) : undefined,
-                focusedNote?.id === note.id ? iconButton({iconName:'delete',onClick:e=> {e.stopPropagation();}}) : undefined,
+                focusedNote?.id === note.id ? iconButton({iconName:'delete',onClick:e=> {e.stopPropagation();deleteNote({})}}) : undefined,
                 note.text
             )
         )
@@ -166,6 +166,47 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
         })
     }
 
+    async function deleteNote({getNote}) {
+        const noteToDelete = getNote ? await getNote() : focusedNote
+        if (noteToDelete) {
+            let lengthToTrim = 10
+            openConfirmActionDialog({
+                confirmText: `Confirm deleting note '${noteToDelete.text.substring(0, lengthToTrim)}${noteToDelete.text.length > lengthToTrim ? '...' : ''}'`,
+                onCancel: () => {
+                    closeConfirmActionDialog()
+                },
+                startActionBtnText: 'Delete',
+                startAction: async ({updateInProgressText, onDone}) => {
+                    let res = await be.deleteNote({id: noteToDelete.id})
+                    if (res.data ?? 0 > 0) {
+                        setFoundNotes(prev => prev.filter(n => n.id != noteToDelete.id))
+                        setFocusedNote(null)
+                    }
+                    closeConfirmActionDialog()
+                },
+            })
+        }
+    }
+
+    async function updateNote({newNoteAttrs}) {
+        const res = await be.updateNote({id:focusedNote.id,...newNoteAttrs})
+        if (!res.err) {
+            if (res.data > 0) {
+                const updatedNote = {...focusedNote,...newNoteAttrs}
+                setFocusedNote(updatedNote)
+                setFoundNotes(prev => prev.map(n => n.id != focusedNote.id ? n : {...n, ...newNoteAttrs}))
+                setEditNoteMode(false)
+                return updatedNote
+            } else {
+                await showErrorMessage(`Internal error: res.data=${res.data}`)
+                return null
+            }
+        } else {
+            await showErrorMessage(res.err.msg)
+            return null
+        }
+    }
+
     if (hasNoValue(allTags)) {
         return "Loading tags..."
     } else if (editNoteMode && hasValue(focusedNote)) {
@@ -174,15 +215,18 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
             allTagsMap,
             note:focusedNote,
             onCancel: () => setEditNoteMode(false),
-            onSave: async ({text, tagIds}) => {
-                const res = await be.updateNote({id:focusedNote.id,text,tagIds})
-                if (!res.err) {
-                    if (res.data > 0) {
-                        setFoundNotes(prev => prev.map(n=>n.id!=focusedNote.id?n:{...n,text,tagIds}))
+            onSave: async ({text, tagIds, isDeleted}) => {
+                if (isDeleted && !focusedNote.isDeleted) {
+                    if (focusedNote.text == text && arraysAreEqualAsSets(focusedNote.tagIds, tagIds)) {
+                        setEditNoteMode(false)
+                        deleteNote({})
+                    } else {
+                        deleteNote({getNote: async () => {
+                                return await updateNote({newNoteAttrs: {text, tagIds, isDeleted}})
+                        }})
                     }
-                    setEditNoteMode(false)
                 } else {
-                    showErrorMessage(res.err.msg)
+                    updateNote({newNoteAttrs: {text, tagIds, isDeleted}})
                 }
             }
         })

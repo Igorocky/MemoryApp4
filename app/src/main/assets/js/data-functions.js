@@ -24,6 +24,16 @@ function isFunction(obj) {
     return typeof obj === 'function'
 }
 
+function arraysAreEqualAsSets(a,b) {
+    if (hasNoValue(a) && hasNoValue(b)) {
+        return true
+    } else if (hasNoValue(a) || hasNoValue(b)) {
+        return false
+    } else {
+        return a.every(e => b.includes(e)) && b.every(e => a.includes(e))
+    }
+}
+
 function randomInt(min, max) {
     return min + Math.floor(Math.random()*((max-min)+1))
 }

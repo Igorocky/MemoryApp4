@@ -3,9 +3,10 @@
 const UpdateNoteCmp = ({allTags,allTagsMap,note,onSave,onCancel}) => {
     const [text, setText] = useState(note.text)
     const [tags, setTags] = useState(note.tagIds.map(id=>allTagsMap[id]))
+    const [isDeleted, setIsDeleted] = useState(note?.isDeleted)
 
     function save() {
-        onSave({text, tagIds: tags.map(t=>t.id)})
+        onSave({text, tagIds: tags.map(t=>t.id), isDeleted})
     }
 
     function renderSaveButton() {
@@ -50,6 +51,14 @@ const UpdateNoteCmp = ({allTags,allTagsMap,note,onSave,onCancel}) => {
                 color:'primary',
             })
         ),
+        RE.FormControlLabel({
+            control:RE.Checkbox({
+                checked:isDeleted?true:false,
+                onChange:() => setIsDeleted(prev=>!prev),
+                color:'primary'
+            }),
+            label:'deleted'
+        }),
         renderButtons(),
     )
 }

@@ -95,12 +95,17 @@ function updateNote({id,text,tagIds}) {
         } else {
         }
         note.text = text
-        removeIf(NOTES_TO_TAGS, ({noteId,tagId}) => noteId == id)
+        removeIf(NOTES_TO_TAGS, ({noteId}) => noteId == id)
         for (let tagId of tagIds) {
             NOTES_TO_TAGS.push({noteId:note.id,tagId})
         }
     }
     return okResponse(notesToUpdate.length)
+}
+
+function deleteNote({id}) {
+    removeIf(NOTES_TO_TAGS, ({noteId}) => noteId == id)
+    return okResponse(removeIf(NOTES, ({id:noteId}) => noteId == id))
 }
 
 function createBeFunctions(...funcs) {
@@ -144,4 +149,5 @@ const be = {
     updateTag: promisifyBeFunc(updateTag),
     getNotes: promisifyBeFunc(getNotes),
     updateNote: promisifyBeFunc(updateNote),
+    deleteNote: promisifyBeFunc(deleteNote),
 }
