@@ -299,26 +299,92 @@ function useStateFromLocalStorageBoolean({key, defaultValue, nullable}) {
     })
 }
 
-function useConfirmActionDialog() {
-    const [confirmActionDialogData, setConfirmActionDialogData] = useState(null)
+function iconButton({iconName,onClick}) {
+    return RE.IconButton(
+        {
+            onClick: e => {
+                e.stopPropagation();
+                onClick?.()
+            }
+        },
+        RE.Icon({style:{color:'black'}}, iconName)
+    )
+}
 
-    function renderConfirmActionDialog() {
-        if (confirmActionDialogData) {
-            return re(ConfirmActionDialog, confirmActionDialogData)
-        } else {
-            return null;
+function useMessagePopup() {
+    const [dialogOpened, setDialogOpened] = useState(false)
+    const [text, setText] = useState(null)
+    const [cancelBtnText, setCancelBtnText] = useState(null)
+    const [onCancel, setOnCancel] = useState(null)
+    const [okBtnText, setOkBtnText] = useState(null)
+    const [onOk, setOnOk] = useState(null)
+    const [showProgress, setShowProgress] = useState(false)
+
+    function renderOkButton() {
+        if (okBtnText) {
+            return RE.div({style:{position: 'relative'}},
+                RE.Button({variant: 'contained', color: 'primary', disabled: showProgress, onClick: onOk}, okBtnText),
+                showProgress?RE.CircularProgress({size:24, style: inButtonCircularProgressStyle}):null
+            )
         }
     }
 
-    function openConfirmActionDialog(dialogParams) {
-        setConfirmActionDialogData(dialogParams)
+    function renderCancelButton() {
+        if (cancelBtnText) {
+            return RE.Button({onClick: onCancel}, cancelBtnText)
+        }
     }
 
-    function closeConfirmActionDialog() {
-        setConfirmActionDialogData(null)
+    function drawActionButtons() {
+        return RE.Fragment({},
+            renderCancelButton(),
+            renderOkButton()
+        )
     }
 
-    return [openConfirmActionDialog, closeConfirmActionDialog, renderConfirmActionDialog]
+    function renderMessagePopup() {
+        if (dialogOpened) {
+            return RE.Dialog({open:true},
+                RE.DialogContent({}, RE.Typography({}, text)),
+                RE.DialogActions({}, drawActionButtons())
+            )
+        }
+    }
+
+    async function confirmAction({text, cancelBtnText = 'cancel', okBtnText = 'ok'}) {
+        return new Promise(resolve => {
+            setDialogOpened(true)
+            setText(text)
+            setCancelBtnText(cancelBtnText)
+            setOnCancel(() => () => {
+                setDialogOpened(false)
+                resolve(false)
+            })
+            setOkBtnText(okBtnText)
+            setOnOk(() => () => {
+                setDialogOpened(false)
+                resolve(true)
+            })
+            setShowProgress(false)
+        })
+    }
+
+    async function showMessage({text, okBtnText = 'ok'}) {
+        return new Promise(resolve => {
+            setDialogOpened(true)
+            setText(text)
+            setCancelBtnText(null)
+            setOnCancel(null)
+            setOkBtnText(okBtnText)
+            setOnOk(() => () => {
+                setDialogOpened(false)
+                resolve(true)
+            })
+            setShowProgress(false)
+        })
+    }
+
+    return {renderMessagePopup, confirmAction, showMessage}
 }
 
 /**

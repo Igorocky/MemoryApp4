@@ -52,6 +52,7 @@ function updateTag({id,name}) {
 }
 
 function deleteTag({id}) {
+    // return errResponse(2,'Error while deleting a tag.')
     return okResponse(removeIf(TAGS,t => t.id==id))
 }
 
@@ -87,25 +88,23 @@ function getNotes({tagIdsToInclude=[],tagIdsToExclude=[],searchInDeleted = false
     return okResponse(result)
 }
 
-function updateNote({id,text,tagIds}) {
+function updateNote({id,text,tagIds,isDeleted}) {
     const notesToUpdate = NOTES.filter(n=>n.id==id)
     for (const note of notesToUpdate) {
-        if (TAGS.find(t=> t.name==name && t.id != id)) {
-            return errResponse(1, `'${name}' tag already exists.`)
-        } else {
+        if (hasValue(text)) {
+            note.text = text
         }
-        note.text = text
-        removeIf(NOTES_TO_TAGS, ({noteId}) => noteId == id)
-        for (let tagId of tagIds) {
-            NOTES_TO_TAGS.push({noteId:note.id,tagId})
+        if (hasValue(tagIds)) {
+            removeIf(NOTES_TO_TAGS, ({noteId}) => noteId == id)
+            for (let tagId of tagIds) {
+                NOTES_TO_TAGS.push({noteId:note.id,tagId})
+            }
+        }
+        if (hasValue(isDeleted)) {
+            note.isDeleted = isDeleted
         }
     }
     return okResponse(notesToUpdate.length)
-}
-
-function deleteNote({id}) {
-    removeIf(NOTES_TO_TAGS, ({noteId}) => noteId == id)
-    return okResponse(removeIf(NOTES, ({id:noteId}) => noteId == id))
 }
 
 function createBeFunctions(...funcs) {
@@ -149,5 +148,4 @@ const be = {
     updateTag: promisifyBeFunc(updateTag),
     getNotes: promisifyBeFunc(getNotes),
     updateNote: promisifyBeFunc(updateNote),
-    deleteNote: promisifyBeFunc(deleteNote),
 }

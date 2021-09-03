@@ -13,7 +13,7 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
     const [focusedNote, setFocusedNote] = useState(null)
     const [editNoteMode, setEditNoteMode] = useState(false)
 
-    const [openConfirmActionDialog, closeConfirmActionDialog, renderConfirmActionDialog] = useConfirmActionDialog()
+    const {renderMessagePopup, showMessage, confirmAction} = useMessagePopup()
 
     useEffect(async () => {
         const {data:allTags} = await be.getAllTags()
@@ -26,21 +26,8 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
         }
     }, [allTags])
 
-    function iconButton({iconName,onClick}) {
-        return RE.IconButton({onClick}, RE.Icon({style:{color:'black'}}, iconName))
-    }
-
-    function showErrorMessage(msg) {
-        return new Promise(resolve => {
-            openConfirmActionDialog({
-                confirmText: `Error: ${msg}`,
-                startActionBtnText: 'OK',
-                startAction: ({updateInProgressText,onDone}) => {
-                    closeConfirmActionDialog()
-                    resolve()
-                },
-            })
-        })
+    async function showError({code, msg}) {
+        return showMessage({text: `Error [${code}] - ${msg}`})
     }
 
     async function doSearch() {
@@ -143,98 +130,65 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
         }
     }
 
+    function deleteFocusedNote() {
+        updateNote({newNoteAttrs:{isDeleted:true}})
+    }
+
     function renderNote({note}) {
         return RE.Paper({},
             RE.Container.row.left.center({},{},
-                focusedNote?.id === note.id ? iconButton({iconName:'edit',onClick:e=> {e.stopPropagation();setEditNoteMode(true)}}) : undefined,
-                focusedNote?.id === note.id ? iconButton({iconName:'delete',onClick:e=> {e.stopPropagation();deleteNote({})}}) : undefined,
+                focusedNote?.id === note.id ? iconButton({iconName:'edit',onClick: () => setEditNoteMode(true)}) : undefined,
+                focusedNote?.id === note.id ? iconButton({iconName:'delete',onClick: deleteFocusedNote}) : undefined,
                 note.text
             )
         )
     }
 
-    function showErrorMessage(msg) {
-        return new Promise(resolve => {
-            openConfirmActionDialog({
-                confirmText: `Error: ${msg}`,
-                startActionBtnText: 'OK',
-                startAction: ({updateInProgressText,onDone}) => {
-                    closeConfirmActionDialog()
-                    resolve()
-                },
-            })
-        })
-    }
-
-    async function deleteNote({getNote}) {
-        const noteToDelete = getNote ? await getNote() : focusedNote
-        if (noteToDelete) {
-            let lengthToTrim = 10
-            openConfirmActionDialog({
-                confirmText: `Confirm deleting note '${noteToDelete.text.substring(0, lengthToTrim)}${noteToDelete.text.length > lengthToTrim ? '...' : ''}'`,
-                onCancel: () => {
-                    closeConfirmActionDialog()
-                },
-                startActionBtnText: 'Delete',
-                startAction: async ({updateInProgressText, onDone}) => {
-                    let res = await be.deleteNote({id: noteToDelete.id})
-                    if (res.data ?? 0 > 0) {
-                        setFoundNotes(prev => prev.filter(n => n.id != noteToDelete.id))
-                        setFocusedNote(null)
-                    }
-                    closeConfirmActionDialog()
-                },
-            })
-        }
-    }
-
     async function updateNote({newNoteAttrs}) {
+        if (newNoteAttrs.isDeleted && !focusedNote.isDeleted) {
+            const noteText = newNoteAttrs.text??focusedNote.text
+            const lengthToTrim = 10
+            if (!await confirmAction({text: `Confirm deleting note '${noteText.substring(0, lengthToTrim)}${noteText.length > lengthToTrim ? '...' : ''}'`})) {
+                return
+            }
+        }
         const res = await be.updateNote({id:focusedNote.id,...newNoteAttrs})
         if (!res.err) {
             if (res.data > 0) {
-                const updatedNote = {...focusedNote,...newNoteAttrs}
-                setFocusedNote(updatedNote)
-                setFoundNotes(prev => prev.map(n => n.id != focusedNote.id ? n : {...n, ...newNoteAttrs}))
                 setEditNoteMode(false)
-                return updatedNote
+                if (newNoteAttrs.isDeleted) {
+                    setFocusedNote(null)
+                    setFoundNotes(prev => prev.filter(n => n.id != focusedNote.id))
+                } else {
+                    setFocusedNote({...focusedNote, ...newNoteAttrs})
+                    setFoundNotes(prev => prev.map(n => n.id != focusedNote.id ? n : {...n, ...newNoteAttrs}))
+                }
             } else {
-                await showErrorMessage(`Internal error: res.data=${res.data}`)
-                return null
+                showError({code:-1, msg:`Internal error when updating a note res.data=${res.data}`})
             }
         } else {
-            await showErrorMessage(res.err.msg)
-            return null
+            showError(res.err)
         }
     }
 
     if (hasNoValue(allTags)) {
         return "Loading tags..."
     } else if (editNoteMode && hasValue(focusedNote)) {
-        return re(UpdateNoteCmp,{
-            allTags,
-            allTagsMap,
-            note:focusedNote,
-            onCancel: () => setEditNoteMode(false),
-            onSave: async ({text, tagIds, isDeleted}) => {
-                if (isDeleted && !focusedNote.isDeleted) {
-                    if (focusedNote.text == text && arraysAreEqualAsSets(focusedNote.tagIds, tagIds)) {
-                        setEditNoteMode(false)
-                        deleteNote({})
-                    } else {
-                        deleteNote({getNote: async () => {
-                                return await updateNote({newNoteAttrs: {text, tagIds, isDeleted}})
-                        }})
-                    }
-                } else {
-                    updateNote({newNoteAttrs: {text, tagIds, isDeleted}})
-                }
-            }
-        })
+        return RE.Fragment({},
+            re(UpdateNoteCmp,{
+                allTags,
+                allTagsMap,
+                note:focusedNote,
+                onCancel: () => setEditNoteMode(false),
+                onSave: newNoteAttrs => updateNote({newNoteAttrs})
+            }),
+            renderMessagePopup()
+        )
     } else {
         return RE.Container.col.top.left({style:{marginTop:'5px'}},{style:{marginTop:'5px'}},
             renderFilter(),
             renderFoundNotes(),
-            renderConfirmActionDialog()
+            renderMessagePopup()
         )
     }
 }
