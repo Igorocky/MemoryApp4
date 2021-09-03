@@ -81,8 +81,8 @@ function getNotes({tagIdsToInclude=[],tagIdsToExclude=[],searchInDeleted = false
         }
     }
     let result = NOTES
-        .filter(note => hasTags({noteId:note.id,tagIds:tagIdsToInclude}))
         .filter(note => searchInDeleted && note.isDeleted || !searchInDeleted && !note.isDeleted)
+        .filter(note => hasTags({noteId:note.id,tagIds:tagIdsToInclude}))
         .filter(note => !hasTags({noteId:note.id, tagIds:tagIdsToExclude, atLeastOne:true}))
         .map(note => ({...note, tagIds:getAllTagIdsOfNote({noteId:note.id})}))
     return okResponse(result)

@@ -131,24 +131,26 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
     }
 
     function deleteFocusedNote() {
-        updateNote({newNoteAttrs:{isDeleted:true}})
+        updateNote({newNoteAttrs:{isDeleted:!focusedNote.isDeleted}})
     }
 
     function renderNote({note}) {
         return RE.Paper({},
             RE.Container.row.left.center({},{},
                 focusedNote?.id === note.id ? iconButton({iconName:'edit',onClick: () => setEditNoteMode(true)}) : undefined,
-                focusedNote?.id === note.id ? iconButton({iconName:'delete',onClick: deleteFocusedNote}) : undefined,
+                focusedNote?.id === note.id ? iconButton({iconName:searchInDeleted?'restore_from_trash':'delete',onClick: deleteFocusedNote}) : undefined,
                 note.text
             )
         )
     }
 
     async function updateNote({newNoteAttrs}) {
-        if (newNoteAttrs.isDeleted && !focusedNote.isDeleted) {
+        if (hasValue(newNoteAttrs.isDeleted) && xor(newNoteAttrs.isDeleted, focusedNote.isDeleted??false)) {
+            const actionName = newNoteAttrs.isDeleted ? 'deleting' : 'restoring'
             const noteText = newNoteAttrs.text??focusedNote.text
             const lengthToTrim = 10
-            if (!await confirmAction({text: `Confirm deleting note '${noteText.substring(0, lengthToTrim)}${noteText.length > lengthToTrim ? '...' : ''}'`})) {
+            const trimmedNoteText = noteText.substring(0, lengthToTrim) + (noteText.length > lengthToTrim ? '...' : '')
+            if (!await confirmAction({text: `Confirm ${actionName} note '${trimmedNoteText}'`})) {
                 return
             }
         }
@@ -156,7 +158,7 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
         if (!res.err) {
             if (res.data > 0) {
                 setEditNoteMode(false)
-                if (newNoteAttrs.isDeleted) {
+                if (hasValue(newNoteAttrs.isDeleted) && xor(newNoteAttrs.isDeleted, searchInDeleted)) {
                     setFocusedNote(null)
                     setFoundNotes(prev => prev.filter(n => n.id != focusedNote.id))
                 } else {

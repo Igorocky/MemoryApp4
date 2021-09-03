@@ -34,6 +34,12 @@ function arraysAreEqualAsSets(a,b) {
     }
 }
 
+function xor(a,b) {
+    if (hasValue(a) && hasValue(b)) {
+        return a && !b || !a && b
+    }
+}
+
 function randomInt(min, max) {
     return min + Math.floor(Math.random()*((max-min)+1))
 }
