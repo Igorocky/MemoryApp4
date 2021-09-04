@@ -146,6 +146,7 @@ const be = {
     getAllTags: promisifyBeFunc(getAllTags),
     deleteTag: promisifyBeFunc(deleteTag),
     updateTag: promisifyBeFunc(updateTag),
+    saveNewNote: promisifyBeFunc(saveNewNote),
     getNotes: promisifyBeFunc(getNotes),
     updateNote: promisifyBeFunc(updateNote),
 }

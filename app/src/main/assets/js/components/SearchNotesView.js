@@ -1,6 +1,7 @@
 "use strict";
 
 const SearchNotesView = ({query,openView,setPageTitle}) => {
+    const {renderMessagePopup, showMessage, confirmAction} = useMessagePopup()
 
     const [allTags, setAllTags] = useState(null)
     const [allTagsMap, setAllTagsMap] = useState(null)
@@ -12,8 +13,6 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
     const [foundNotes, setFoundNotes] = useState(null)
     const [focusedNote, setFocusedNote] = useState(null)
     const [editNoteMode, setEditNoteMode] = useState(false)
-
-    const {renderMessagePopup, showMessage, confirmAction} = useMessagePopup()
 
     useEffect(async () => {
         const {data:allTags} = await be.getAllTags()
@@ -101,7 +100,7 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
                     label: tag.name,
                     color:'secondary',
                 })),
-                iconButton({iconName:'edit',onClick:editFilter})
+                iconButton({iconName:'tune',onClick:editFilter})
             )
         }
     }
