@@ -6,11 +6,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import kotlin.collections.ArrayList
 
 
-class DataManager(private val context: Context, private val dbName: String? = "memory-app-4-db") {
-    val repo = Repository(context, dbName)
+class DataManager(private val context: Context, private val dbName: String? = "memory-app-db") {
     private val t = DB_V1
+    private var repo = createNewRepo()
+    fun getRepo() = repo
 
     private val ERR_CREATE_TAG_NAME_EMPTY = 101
     private val ERR_CREATE_TAG_NAME_DUPLICATED = 102
@@ -27,6 +32,8 @@ class DataManager(private val context: Context, private val dbName: String? = "m
     private val ERR_UPDATE_TAG_SQL_EXCEPTION = 304
 
     private val ERR_DELETE_TAG_SQL_EXCEPTION = 401
+
+    private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX").withZone(ZoneId.from(ZoneOffset.UTC))
 
     suspend fun saveNewTag(nameArg:String): BeRespose<Tag> = withContext(Dispatchers.IO) {
         val name = nameArg.replace(" ", "")
@@ -156,16 +163,57 @@ class DataManager(private val context: Context, private val dbName: String? = "m
         }
     }
 
-    suspend fun doBackup() = withContext(Dispatchers.IO) {
-        context.getDatabasePath(dbName).copyTo(
-            target = File(context.getExternalFilesDir(null)!!.absolutePath + "/$dbName-backup"),
-            overwrite = true
-        )
+    suspend fun doBackup(): BeRespose<Backup> = withContext(Dispatchers.IO) {
+        val databasePath: File = context.getDatabasePath(dbName)
+        val backupFileName = createBackupFileName(databasePath)
+        val backupPath = File(backupDir, backupFileName)
+        try {
+            repo.close()
+            databasePath.copyTo(
+                target = backupPath,
+                overwrite = true
+            )
+            BeRespose(data = Backup(name = backupFileName, size = backupPath.length()))
+        } finally {
+            repo = createNewRepo()
+        }
+    }
+
+    suspend fun restoreFromBackup(backupName:String): BeRespose<String> = withContext(Dispatchers.IO) {
+        val databasePath: File = context.getDatabasePath(dbName)
+        val backupPath = File(backupDir, backupName)
+        try {
+            repo.close()
+            backupPath.copyTo(
+                target = databasePath,
+                overwrite = true
+            )
+            BeRespose(data = "The database was restored from the backup $backupName")
+        } finally {
+            repo = createNewRepo()
+        }
+    }
+
+    suspend fun listAvailableBackups(): BeRespose<List<Backup>> = withContext(Dispatchers.IO) {
+        BeRespose(data = backupDir.listFiles().map { Backup(name = it.name, size = it.length()) })
+    }
+
+    suspend fun removeBackup(backupName:String): BeRespose<List<Backup>> = withContext(Dispatchers.IO) {
+        File(backupDir, backupName).delete()
+        listAvailableBackups()
     }
 
     fun close() = repo.close()
 
     suspend fun debug() {
         doBackup()
+    }
+
+    private val backupDir = File(context.getExternalFilesDir(null)!!.absolutePath + "/backup")
+
+    private fun createNewRepo() = Repository(context, dbName)
+
+    private fun createBackupFileName(dbPath: File): String {
+        return "${dbPath.name}-backup-${dateTimeFormatter.format(Instant.now()).replace(":","-")}"
     }
 }

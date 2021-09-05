@@ -87,8 +87,47 @@ class DataManagerInstrumentedTest {
         assertEquals(0, allNotes.size)
     }
 
+    @Test
+    fun backup_and_restore_work_correctly() {
+        //given
+        val dm = DataManager(context = appContext, dbName = "test-backup-and-restore")
+        fun getAllTags() = runBlocking{ dm.getAllTags() }.data!!
+        fun saveTag(name:String) = runBlocking { dm.saveNewTag(name) }.data!!
+        fun deleteTag(id:Long) = runBlocking { dm.deleteTag(id) }
+
+        getAllTags().forEach{deleteTag(it.id)}
+
+        //when: prepare data before backup
+        val tag1Id: Long = saveTag("tag1").id
+        val tag2Id: Long = saveTag("tag2").id
+        //then
+        getAllTags().asSequence().map { it.id }.toSet().also { it.contains(tag1Id) }.also { it.contains(tag2Id) }
+
+        //when:do backup
+        val backup = runBlocking { dm.doBackup() }.data!!
+        //then
+        getAllTags().asSequence().map { it.id }.toSet().also { it.contains(tag1Id) }.also { it.contains(tag2Id) }
+
+        //when:modify data after backup
+        val tag3Id: Long = saveTag("tag3").id
+        deleteTag(tag1Id)
+        //then
+        getAllTags().asSequence().map { it.id }.toSet()
+            .also { !it.contains(tag1Id) }
+            .also { it.contains(tag2Id) }
+            .also { it.contains(tag3Id) }
+
+        //when: restore data from the backup
+        runBlocking { dm.restoreFromBackup(backup.name) }
+        //then
+        getAllTags().asSequence().map { it.id }.toSet()
+            .also { it.contains(tag1Id) }
+            .also { it.contains(tag2Id) }
+            .also { !it.contains(tag3Id) }
+    }
+
     private fun getAllNotes(dm:DataManager): List<Note> {
-        val repo = dm.repo
+        val repo = dm.getRepo()
         return repo.readableDatabase.rawQuery("select ${repo.t.notes.id}, ${repo.t.notes.createdAt}, ${repo.t.notes.text} from ${repo.t.notes}", null).use { cursor ->
             val result = ArrayList<Note>()
             if (cursor.moveToFirst()) {
@@ -112,7 +151,7 @@ class DataManagerInstrumentedTest {
     }
 
     private fun getAllTags(dm:DataManager): List<Tag> {
-        val repo = dm.repo
+        val repo = dm.getRepo()
         return repo.readableDatabase.rawQuery("select ${repo.t.tags.id}, ${repo.t.tags.createdAt}, ${repo.t.tags.name} from ${repo.t.tags}", null).use { cursor ->
             val result = ArrayList<Tag>()
             if (cursor.moveToFirst()) {
