@@ -44,6 +44,8 @@ const be = {
     updateTag: createSingleDtoArgBeFunction('updateTag'),
     deleteTag: createSingleDtoArgBeFunction('deleteTag'),
     saveNewNote: createSingleDtoArgBeFunction('saveNewNote'),
+    getNotes: createSingleDtoArgBeFunction('getNotes'),
+    updateNote: createSingleDtoArgBeFunction('updateNote'),
 
     debug: createBeFunction('debug'),
 }

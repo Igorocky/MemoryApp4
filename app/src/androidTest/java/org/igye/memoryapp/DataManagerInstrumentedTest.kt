@@ -22,7 +22,7 @@ class DataManagerInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("org.igye.memoryapp", appContext.packageName)
+        assertEquals("org.igye.memoryapp.dev", appContext.packageName)
     }
 
     @Test
@@ -320,6 +320,258 @@ class DataManagerInstrumentedTest {
         }
         assertEquals(note3TextExpected, notesMap[note3Id]?.text)
         assertEquals(setOf(tag3Id, tag4Id), notesMap[note3Id]?.tagIds?.toSet())
+    }
+
+    @Test
+    fun getNotes_returns_maximum_specified_number_of_items() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        runBlocking { dm.saveNewNote("note1", listOf(tag1Id)) }
+        runBlocking { dm.saveNewNote("note1", listOf(tag1Id)) }
+        runBlocking { dm.saveNewNote("note1", listOf(tag1Id)) }
+        runBlocking { dm.saveNewNote("note1", listOf(tag1Id)) }
+        runBlocking { dm.saveNewNote("note1", listOf(tag1Id)) }
+
+        //when
+        val notesResp = runBlocking { dm.getNotes(rowsMax = 4) }
+
+        //then
+        val notes = notesResp.data!!.items
+        assertEquals(4, notes.size)
+        assertFalse(notesResp.data!!.complete)
+    }
+
+    @Test
+    fun updateNote_updates_only_text() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2-updated"
+        val note3TextExpected = "note3"
+        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote("note2", listOf(tag2Id, tag3Id)) }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+
+        //when
+        val updRes = runBlocking { dm.updateNote(noteId = note2Id, textArg = note2TextExpected) }
+
+        //then
+        assertNull(updRes.err)
+        val notes = runBlocking { dm.getNotes() }.data!!.items
+        assertEquals(3, notes.size)
+        val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
+            map.also { it.put(note.id, note) }
+        }
+        var note = notesMap[note1Id]
+        assertEquals(note1TextExpected, note?.text)
+        assertFalse(note?.isDeleted!!)
+        assertEquals(setOf(tag1Id, tag2Id), note?.tagIds?.toSet())
+        note = notesMap[note2Id]
+        assertEquals(note2TextExpected, note?.text)
+        assertFalse(note?.isDeleted!!)
+        assertEquals(setOf(tag2Id, tag3Id), note?.tagIds?.toSet())
+        note = notesMap[note3Id]
+        assertEquals(note3TextExpected, note?.text)
+        assertFalse(note?.isDeleted!!)
+        assertEquals(setOf(tag3Id, tag4Id), note?.tagIds?.toSet())
+    }
+
+    @Test
+    fun updateNote_updates_only_tags() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2"
+        val note3TextExpected = "note3"
+        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+
+        //when
+        val updRes = runBlocking { dm.updateNote(noteId = note2Id, tagIds = listOf(tag2Id, tag4Id)) }
+
+        //then
+        assertNull(updRes.err)
+        val notes = runBlocking { dm.getNotes() }.data!!.items
+        assertEquals(3, notes.size)
+        val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
+            map.also { it.put(note.id, note) }
+        }
+        var note = notesMap[note1Id]
+        assertEquals(note1TextExpected, note?.text)
+        assertFalse(note?.isDeleted!!)
+        assertEquals(setOf(tag1Id, tag2Id), note?.tagIds?.toSet())
+        note = notesMap[note2Id]
+        assertEquals(note2TextExpected, note?.text)
+        assertFalse(note?.isDeleted!!)
+        assertEquals(setOf(tag2Id, tag4Id), note?.tagIds?.toSet())
+        note = notesMap[note3Id]
+        assertEquals(note3TextExpected, note?.text)
+        assertFalse(note?.isDeleted!!)
+        assertEquals(setOf(tag3Id, tag4Id), note?.tagIds?.toSet())
+    }
+
+    @Test
+    fun updateNote_updates_only_isDeleted() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2"
+        val note3TextExpected = "note3"
+        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+
+        //when
+        val updRes = runBlocking { dm.updateNote(noteId = note2Id, isDeleted = true) }
+
+        //then
+        assertNull(updRes.err)
+        val notes = runBlocking { dm.getNotes(searchInDeleted = true) }.data!!.items
+        assertEquals(1, notes.size)
+        val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
+            map.also { it.put(note.id, note) }
+        }
+        val note = notes[0]
+        assertEquals(note2TextExpected, note?.text)
+        assertTrue(note?.isDeleted!!)
+        assertEquals(setOf(tag2Id, tag3Id), note?.tagIds?.toSet())
+    }
+
+    @Test
+    fun updateNote_updates_text_and_isDeleted() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2-updated"
+        val note3TextExpected = "note3"
+        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote("note2", listOf(tag2Id, tag3Id)) }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+
+        //when
+        val updRes = runBlocking { dm.updateNote(noteId = note2Id, textArg = note2TextExpected, isDeleted = true) }
+
+        //then
+        assertNull(updRes.err)
+        val notes = runBlocking { dm.getNotes(searchInDeleted = true) }.data!!.items
+        assertEquals(1, notes.size)
+        val note = notes[0]
+        assertEquals(note2TextExpected, note?.text)
+        assertTrue(note?.isDeleted!!)
+        assertEquals(setOf(tag2Id, tag3Id), note?.tagIds?.toSet())
+    }
+
+    @Test
+    fun updateNote_updates_text_and_tags() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2-updated"
+        val note3TextExpected = "note3"
+        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote("note2", listOf(tag2Id, tag3Id)) }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+
+        //when
+        val updRes = runBlocking { dm.updateNote(noteId = note2Id, textArg = note2TextExpected, tagIds = listOf(tag2Id, tag4Id)) }
+
+        //then
+        assertNull(updRes.err)
+        val notes = runBlocking { dm.getNotes() }.data!!.items
+        assertEquals(3, notes.size)
+        val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
+            map.also { it.put(note.id, note) }
+        }
+        var note = notesMap[note1Id]
+        assertEquals(note1TextExpected, note?.text)
+        assertFalse(note?.isDeleted!!)
+        assertEquals(setOf(tag1Id, tag2Id), note?.tagIds?.toSet())
+        note = notesMap[note2Id]
+        assertEquals(note2TextExpected, note?.text)
+        assertFalse(note?.isDeleted!!)
+        assertEquals(setOf(tag2Id, tag4Id), note?.tagIds?.toSet())
+        note = notesMap[note3Id]
+        assertEquals(note3TextExpected, note?.text)
+        assertFalse(note?.isDeleted!!)
+        assertEquals(setOf(tag3Id, tag4Id), note?.tagIds?.toSet())
+    }
+
+    @Test
+    fun updateNote_updates_isDeleted_and_tags() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2"
+        val note3TextExpected = "note3"
+        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+
+        //when
+        val updRes = runBlocking { dm.updateNote(noteId = note2Id, isDeleted = true, tagIds = listOf(tag2Id,tag4Id)) }
+
+        //then
+        assertNull(updRes.err)
+        val notes = runBlocking { dm.getNotes(searchInDeleted = true) }.data!!.items
+        assertEquals(1, notes.size)
+        val note = notes[0]
+        assertEquals(note2TextExpected, note?.text)
+        assertTrue(note?.isDeleted!!)
+        assertEquals(setOf(tag2Id, tag4Id), note?.tagIds?.toSet())
+    }
+
+    @Test
+    fun updateNote_updates_text_isDeleted_and_tags() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2-updated"
+        val note3TextExpected = "note3"
+        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote("note2", listOf(tag2Id, tag3Id)) }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+
+        //when
+        val updRes = runBlocking { dm.updateNote(noteId = note2Id, textArg = note2TextExpected, isDeleted = true, tagIds = listOf(tag2Id,tag4Id)) }
+
+        //then
+        assertNull(updRes.err)
+        val notes = runBlocking { dm.getNotes(searchInDeleted = true) }.data!!.items
+        assertEquals(1, notes.size)
+        val note = notes[0]
+        assertEquals(note2TextExpected, note?.text)
+        assertTrue(note?.isDeleted!!)
+        assertEquals(setOf(tag2Id, tag4Id), note?.tagIds?.toSet())
     }
 
     private fun createInmemoryDataManager() = DataManager(context = appContext, dbName = null)

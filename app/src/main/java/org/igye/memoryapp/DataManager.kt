@@ -1,6 +1,7 @@
 package org.igye.memoryapp
 
 import android.content.Context
+import android.database.sqlite.SQLiteStatement
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.igye.memoryapp.Utils.isNotEmpty
@@ -33,6 +34,11 @@ class DataManager(private val context: Context, private val dbName: String? = "m
     private val ERR_UPDATE_TAG_NAME_DUPLICATED = 302
     private val ERR_UPDATE_TAG = 304
 
+    private val ERR_UPDATE_NOTE = 305
+    private val ERR_UPDATE_NOTE_TEXT_EMPTY = 306
+    private val ERR_UPDATE_NOTE_CNT_IS_NOT_ONE = 307
+    private val ERR_UPDATE_NOTE_TAG_REF_NEGATIVE_NEW_ID = 308
+
     private val ERR_DELETE_TAG = 401
 
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX").withZone(ZoneId.from(ZoneOffset.UTC))
@@ -63,7 +69,7 @@ class DataManager(private val context: Context, private val dbName: String? = "m
     suspend fun updateTag(id:Long, nameArg:String): BeRespose<Int> = withContext(Dispatchers.IO) {
         val name = nameArg.replace(" ", "")
         if (name.isBlank()) {
-            BeRespose(err = BeErr(code = ERR_UPDATE_TAG_NAME_EMPTY, msg = "Name of a tag should not be empty."))
+            BeRespose(err = BeErr(code = ERR_UPDATE_TAG_NAME_EMPTY, msg = "Name of a tag must not be empty."))
         } else {
             repo.writableDatabase.doInTransaction(
                 exceptionHandler = {
@@ -131,7 +137,8 @@ class DataManager(private val context: Context, private val dbName: String? = "m
     suspend fun getNotes(
         tagIdsToInclude:List<Long>? = null,
         tagIdsToExclude:List<Long>? = null,
-        searchInDeleted:Boolean = false
+        searchInDeleted:Boolean = false,
+        rowsMax:Long? = null,
     ): BeRespose<ListOfItems<Note>> = withContext(Dispatchers.IO) {
         val query = StringBuilder(
             """select n.${t.notes.id}, 
@@ -160,7 +167,7 @@ class DataManager(private val context: Context, private val dbName: String? = "m
         repo.readableDatabase.doInTransaction(errCode = ERR_GET_NOTES) {
             val (allRowsFetched, result) = repo.select(
                 query = query.toString(),
-                rowsMax = 100,
+                rowsMax = rowsMax,
                 columnNames = listOf(t.notes.id, t.notes.createdAt, t.notes.isDeleted, t.notes.text, "tagIds"),
                 rowMapper = {
                     Note(
@@ -173,6 +180,55 @@ class DataManager(private val context: Context, private val dbName: String? = "m
                 }
             )
             BeRespose(data = ListOfItems(complete = allRowsFetched, items = result))
+        }
+    }
+
+    suspend fun updateNote(
+        noteId:Long,
+        textArg:String? = null,
+        isDeleted: Boolean? = null,
+        tagIds: List<Long>? = null
+    ): BeRespose<Int> = withContext(Dispatchers.IO) {
+        if (textArg == null && isDeleted == null && tagIds == null) {
+            BeRespose(data = 0)
+        } else if (textArg != null && textArg.isBlank()) {
+            BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_TEXT_EMPTY, msg = "Content of a note must not be empty."))
+        } else {
+            repo.writableDatabase.doInTransaction(errCode = ERR_UPDATE_NOTE) transaction@{
+                if (textArg != null || isDeleted != null) {
+                    val text = textArg?.trim()
+                    val query = StringBuilder("update ${t.notes} set ")
+                    val updateParts = ArrayList<String>()
+                    val args = ArrayList<(SQLiteStatement,Int) -> Unit>()
+                    if (text != null) {
+                        updateParts.add("${t.notes.text} = ?")
+                        args.add { stmt, idx -> stmt.bindString(idx, text) }
+                    }
+                    if (isDeleted != null) {
+                        updateParts.add("${t.notes.isDeleted} = ?")
+                        args.add { stmt, idx -> stmt.bindLong(idx, if (isDeleted) 1 else 0) }
+                    }
+                    query.append(updateParts.joinToString(separator = ", "))
+                    query.append(" where id = ?")
+                    args.add { stmt, idx -> stmt.bindLong(idx, noteId) }
+                    val updatedCnt = compileStatement(query.toString()).use { stmt: SQLiteStatement ->
+                        args.forEachIndexed { index, binder -> binder(stmt,index+1) }
+                        stmt.executeUpdateDelete()
+                    }
+                    if (updatedCnt != 1) {
+                        return@transaction BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_CNT_IS_NOT_ONE, msg = "updatedCnt != 1"))
+                    }
+                }
+                if (tagIds != null) {
+                    repo.deleteNoteToTagStmt!!.exec(noteId)
+                    tagIds.forEach { tagId ->
+                        if (repo.insertNoteToTagStmt!!.exec(noteId,tagId) == -1L) {
+                            return@transaction BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_TAG_REF_NEGATIVE_NEW_ID, "noteToTag.newId == -1"))
+                        }
+                    }
+                }
+                BeRespose(data = 1)
+            }
         }
     }
 

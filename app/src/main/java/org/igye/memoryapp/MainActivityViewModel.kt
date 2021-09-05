@@ -87,6 +87,45 @@ class MainActivityViewModel: ViewModel() {
         callFeCallbackForDto(cbId,dataManager!!.saveNewNote(textArg = newNote.text, tagIds = newNote.tagIds))
     }
 
+    data class GetNotesArgs(
+        val tagIdsToInclude: List<Long>? = null,
+        val tagIdsToExclude: List<Long>? = null,
+        val searchInDeleted: Boolean = false
+    )
+    @JavascriptInterface
+    fun getNotes(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+        val filter = gson.fromJson(args, GetNotesArgs::class.java)
+        callFeCallbackForDto(
+            cbId,
+            dataManager!!.getNotes(
+                rowsMax = 100,
+                tagIdsToInclude = filter.tagIdsToInclude,
+                tagIdsToExclude = filter.tagIdsToExclude,
+                searchInDeleted = filter.searchInDeleted
+            ).mapData { it.items }
+        )
+    }
+
+    data class UpdateNoteArgs(
+        val id:Long,
+        val text:String? = null,
+        val isDeleted: Boolean? = null,
+        val tagIds: List<Long>? = null
+    )
+    @JavascriptInterface
+    fun updateNote(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+        val newAttrs = gson.fromJson(args, UpdateNoteArgs::class.java)
+        callFeCallbackForDto(
+            cbId,
+            dataManager!!.updateNote(
+                noteId = newAttrs.id,
+                textArg = newAttrs.text,
+                isDeleted = newAttrs.isDeleted,
+                tagIds= newAttrs.tagIds
+            )
+        )
+    }
+
     private fun callFeCallback(callBackId: Int, result: Any?) {
         webView!!.post {
             webView!!.loadUrl("javascript:callFeCallback($callBackId, $result)")

@@ -61,6 +61,7 @@ class Repository(context: Context, dbName: String?) : SQLiteOpenHelper(context, 
     interface DeleteTagStmt {fun exec(id: Long): Int} var deleteTagStmt: DeleteTagStmt? = null
     interface InsertNoteStmt {fun exec(text: String): Note} var insertNoteStmt: InsertNoteStmt? = null
     interface InsertNoteToTagStmt {fun exec(noteId: Long, tagId: Long): Long} var insertNoteToTagStmt: InsertNoteToTagStmt? = null
+    interface DeleteNoteToTagStmt {fun exec(noteId: Long): Int} var deleteNoteToTagStmt: DeleteNoteToTagStmt? = null
 
     override fun onOpen(db: SQLiteDatabase?) {
         super.onOpen(db)
@@ -105,6 +106,14 @@ class Repository(context: Context, dbName: String?) : SQLiteOpenHelper(context, 
                 stmt.bindLong(1, noteId)
                 stmt.bindLong(2, tagId)
                 return stmt.executeInsert()
+            }
+
+        }
+        deleteNoteToTagStmt = object : DeleteNoteToTagStmt {
+            val stmt = db!!.compileStatement("delete from ${t.noteToTag} where ${t.noteToTag.noteId} = ?")
+            override fun exec(noteId: Long): Int {
+                stmt.bindLong(1, noteId)
+                return stmt.executeUpdateDelete()
             }
 
         }
