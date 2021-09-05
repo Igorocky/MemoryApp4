@@ -29,16 +29,31 @@ class DataManagerInstrumentedTest {
     fun saveNewTag_saves_new_tag() {
         //given
         val dm = createInmemoryDataManager()
-        assertEquals(0, (runBlocking{ dm.getTags() }.data as List<Tag>).size)
+        assertEquals(0, dm.inTestGetAllTags().size)
         val expectedTagName = "test-tag"
 
         //when
         runBlocking { dm.saveNewTag(expectedTagName) }
 
         //then
-        val tags = runBlocking { dm.getTags() }.data as List<Tag>
+        val tags = dm.inTestGetAllTags()
         assertEquals(1, tags.size)
         assertEquals(expectedTagName, tags[0].name)
+    }
+
+    @Test
+    fun saveNewTag_fails_when_trying_to_save_tag_with_same_name() {
+        //given
+        val dm = createInmemoryDataManager()
+        val expectedTagName = "test-tag"
+        runBlocking { dm.saveNewTag(expectedTagName) }
+
+        //when
+        val res = runBlocking { dm.saveNewTag(expectedTagName) }
+
+        //then
+        assertEquals(102, res.err!!.code)
+        assertEquals("'test-tag' tag already exists.", res.err!!.msg)
     }
 
     @Test
@@ -82,7 +97,8 @@ class DataManagerInstrumentedTest {
         val resp: BeRespose<Note> = runBlocking { dm.saveNewNote(textArg = expectedNoteText, tagIds = listOf(allTags[0].id, allTags[1].id, nonExistentTagId)) }
 
         //then
-        assertNotNull(resp.err)
+        assertEquals(114,resp.err!!.code)
+        assertEquals("SQLiteConstraintException FOREIGN KEY constraint failed (code 787 SQLITE_CONSTRAINT_FOREIGNKEY)",resp.err!!.msg)
         val allNotes = getAllNotes(dm)
         assertEquals(0, allNotes.size)
     }
@@ -167,48 +183,28 @@ class DataManagerInstrumentedTest {
 
     private fun getAllNotes(dm:DataManager): List<Note> {
         val repo = dm.getRepo()
-        return repo.readableDatabase.rawQuery("select ${repo.t.notes.id}, ${repo.t.notes.createdAt}, ${repo.t.notes.text} from ${repo.t.notes}", null).use { cursor ->
-            val result = ArrayList<Note>()
-            if (cursor.moveToFirst()) {
-                val idColumnIndex = cursor.getColumnIndex(repo.t.notes.id)
-                val createdAtColumnIndex = cursor.getColumnIndex(repo.t.notes.createdAt)
-                val textColumnIndex = cursor.getColumnIndex(repo.t.notes.text)
-                while (!cursor.isAfterLast) {
-                    result.add(
-                        Note(
-                            id = cursor.getLong(idColumnIndex),
-                            createdAt = cursor.getLong(createdAtColumnIndex),
-                            text = cursor.getString(textColumnIndex),
-                            tagIds = emptyList()
-                        )
-                    )
-                    cursor.moveToNext()
-                }
-            }
-            result
-        }
+        return repo.select(
+            query = "select ${repo.t.notes.id}, ${repo.t.notes.createdAt}, ${repo.t.notes.text} from ${repo.t.notes}",
+            columnNames = listOf(repo.t.notes.id, repo.t.notes.createdAt, repo.t.notes.text),
+            rowMapper = {Note(
+                id = it.getLong(),
+                createdAt = it.getLong(),
+                text = it.getString(),
+                tagIds = emptyList()
+            )}
+        ).second
     }
 
     private fun getAllTags(dm:DataManager): List<Tag> {
         val repo = dm.getRepo()
-        return repo.readableDatabase.rawQuery("select ${repo.t.tags.id}, ${repo.t.tags.createdAt}, ${repo.t.tags.name} from ${repo.t.tags}", null).use { cursor ->
-            val result = ArrayList<Tag>()
-            if (cursor.moveToFirst()) {
-                val idColumnIndex = cursor.getColumnIndex(repo.t.tags.id)
-                val createdAtColumnIndex = cursor.getColumnIndex(repo.t.tags.createdAt)
-                val nameColumnIndex = cursor.getColumnIndex(repo.t.tags.name)
-                while (!cursor.isAfterLast) {
-                    result.add(
-                        Tag(
-                            id = cursor.getLong(idColumnIndex),
-                            createdAt = cursor.getLong(createdAtColumnIndex),
-                            name = cursor.getString(nameColumnIndex),
-                        )
-                    )
-                    cursor.moveToNext()
-                }
-            }
-            result
-        }
+        return repo.select(
+            query = "select ${repo.t.tags.id}, ${repo.t.tags.createdAt}, ${repo.t.tags.name} from ${repo.t.tags}",
+            columnNames = listOf(repo.t.tags.id, repo.t.tags.createdAt, repo.t.tags.name),
+            rowMapper = {Tag(
+                id = it.getLong(),
+                createdAt = it.getLong(),
+                name = it.getString()
+            )}
+        ).second
     }
 }

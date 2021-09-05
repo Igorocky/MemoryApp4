@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper
 import androidx.core.database.getLongOrNull
 import androidx.core.database.getStringOrNull
 import androidx.core.database.sqlite.transaction
+import java.lang.Exception
 import java.time.Instant
 
 class Repository(context: Context, dbName: String?) : SQLiteOpenHelper(context, dbName, null, 1) {
@@ -47,6 +48,8 @@ class Repository(context: Context, dbName: String?) : SQLiteOpenHelper(context, 
     interface InsertTagStmt {fun exec(name: String): Tag} var insertTagStmt: InsertTagStmt? = null
     interface UpdateTagStmt {fun exec(id: Long, name: String): Int} var updateTagStmt: UpdateTagStmt? = null
     interface DeleteTagStmt {fun exec(id: Long): Int} var deleteTagStmt: DeleteTagStmt? = null
+    interface InsertNoteStmt {fun exec(text: String): Note} var insertNoteStmt: InsertNoteStmt? = null
+    interface InsertNoteToTagStmt {fun exec(noteId: Long, tagId: Long): Long} var insertNoteToTagStmt: InsertNoteToTagStmt? = null
 
     override fun onOpen(db: SQLiteDatabase?) {
         super.onOpen(db)
@@ -74,6 +77,25 @@ class Repository(context: Context, dbName: String?) : SQLiteOpenHelper(context, 
                 stmt.bindLong(1, id)
                 return stmt.executeUpdateDelete()
             }
+        }
+        insertNoteStmt = object : InsertNoteStmt {
+            val stmt = db!!.compileStatement("insert into ${t.notes} (${t.notes.createdAt},${t.notes.text}) values (?,?)")
+            override fun exec(text: String): Note {
+                val createdAt = Instant.now().toEpochMilli()
+                stmt.bindLong(1, createdAt)
+                stmt.bindString(2, text)
+                return Note(id = stmt.executeInsert(), createdAt = createdAt, text = text, tagIds = emptyList())
+            }
+
+        }
+        insertNoteToTagStmt = object : InsertNoteToTagStmt {
+            val stmt = db!!.compileStatement("insert into ${t.noteToTag} (${t.noteToTag.noteId},${t.noteToTag.tagId}) values (?,?)")
+            override fun exec(noteId: Long, tagId: Long): Long {
+                stmt.bindLong(1, noteId)
+                stmt.bindLong(2, tagId)
+                return stmt.executeInsert()
+            }
+
         }
     }
 
@@ -116,7 +138,11 @@ class Repository(context: Context, dbName: String?) : SQLiteOpenHelper(context, 
     }
 }
 
-inline fun <T> SQLiteDatabase.doInTransaction(body: SQLiteDatabase.() -> BeRespose<T>): BeRespose<T> {
+inline fun <T> SQLiteDatabase.doInTransaction(
+    exceptionHandler: ((Exception) -> BeRespose<T>?) = { null },
+    errCode: Int? = null,
+    body: SQLiteDatabase.() -> BeRespose<T>
+): BeRespose<T> {
     beginTransaction()
     try {
         val result = body()
@@ -124,6 +150,15 @@ inline fun <T> SQLiteDatabase.doInTransaction(body: SQLiteDatabase.() -> BeRespo
             setTransactionSuccessful()
         }
         return result
+    } catch (ex: Exception) {
+        val res = exceptionHandler(ex)
+        if (res != null) {
+            return res
+        } else if (errCode != null) {
+            return BeRespose(err = BeErr(code = errCode, msg = "${ex.javaClass.simpleName} ${ex.message?:"..."}"))
+        } else {
+            throw ex
+        }
     } finally {
         endTransaction()
     }
