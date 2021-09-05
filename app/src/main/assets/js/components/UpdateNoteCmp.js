@@ -43,7 +43,7 @@ const UpdateNoteCmp = ({allTags,allTagsMap,note,onSave,onCancel,saveBtnText = 's
             maxRows: 10,
             size:'small',
             onChange: event => {
-                const newText = event.nativeEvent.target.value.trim()
+                const newText = event.nativeEvent.target.value
                 if (newText != text) {
                     setText(newText)
                 }

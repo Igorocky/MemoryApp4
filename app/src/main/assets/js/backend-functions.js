@@ -43,6 +43,7 @@ const be = {
     getAllTags: createBeFunction('getAllTags'),
     updateTag: createSingleDtoArgBeFunction('updateTag'),
     deleteTag: createSingleDtoArgBeFunction('deleteTag'),
+    saveNewNote: createSingleDtoArgBeFunction('saveNewNote'),
 
     debug: createBeFunction('debug'),
 }

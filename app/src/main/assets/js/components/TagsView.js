@@ -93,7 +93,7 @@ const TagsView = ({query,openView,setPageTitle}) => {
             onSave: async newTag => {
                 const resp = await be.saveNewTag(newTag)
                 if (resp.err) {
-                    await showError(resp.err.msg)
+                    await showError(resp.err)
                     return {err:true}
                 } else {
                     console.log('resp.data', resp.data)

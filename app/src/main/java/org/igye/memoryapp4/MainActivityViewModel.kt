@@ -40,7 +40,7 @@ class MainActivityViewModel: ViewModel() {
             webView.loadUrl("https://appassets.androidplatform.net/assets/index.html")
             this.webView = webView
 
-            this.dataManager = DataManager(appContext)
+            this.dataManager = DataManager(context = appContext)
         }
         return this.webView!!
     }
@@ -62,10 +62,9 @@ class MainActivityViewModel: ViewModel() {
         callFeCallbackForDto(cbId,dataManager!!.saveNewTag(newTag.name))
     }
 
-    data class DeleteTagArgs(val id:Long)
     @JavascriptInterface
-    fun deleteTag(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
-        callFeCallbackForDto(cbId,dataManager!!.deleteTag(id = gson.fromJson(args, DeleteTagArgs::class.java).id))
+    fun getAllTags(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+        callFeCallbackForDto(cbId,dataManager!!.getAllTags())
     }
 
     data class UpdateTagArgs(val id:Long, val name: String)
@@ -75,9 +74,17 @@ class MainActivityViewModel: ViewModel() {
         callFeCallbackForDto(cbId,dataManager!!.updateTag(id = args.id, nameArg = args.name))
     }
 
+    data class DeleteTagArgs(val id:Long)
     @JavascriptInterface
-    fun getAllTags(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
-        callFeCallbackForDto(cbId,dataManager!!.getAllTags())
+    fun deleteTag(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+        callFeCallbackForDto(cbId,dataManager!!.deleteTag(id = gson.fromJson(args, DeleteTagArgs::class.java).id))
+    }
+
+    data class SaveNewNoteArgs(val text:String, val tagIds: List<Long>)
+    @JavascriptInterface
+    fun saveNewNote(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+        val newNote = gson.fromJson(args, SaveNewNoteArgs::class.java)
+        callFeCallbackForDto(cbId,dataManager!!.saveNewNote(textArg = newNote.text, tagIds = newNote.tagIds))
     }
 
     private fun callFeCallback(callBackId: Int, result: Any?) {
