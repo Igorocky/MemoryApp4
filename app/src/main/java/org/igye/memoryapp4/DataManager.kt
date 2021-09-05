@@ -146,15 +146,15 @@ class DataManager(private val context: Context, private val dbName: String? = "m
             searchFilters.add(" nt.${t.noteToTag.tagId} in (${tagIdsToInclude!!.joinToString(separator = ",")})")
         } else {
             query.append(" from ${t.notes} n")
-            if (isNotEmpty(tagIdsToExclude)) {
-                query.append(" inner join ${t.noteToTag} nt on n.${t.notes.id} = nt.${t.noteToTag.noteId}")
-            }
+        }
+        if (isNotEmpty(tagIdsToExclude)) {
+            query.append(" inner join ${t.noteToTag} nte on n.${t.notes.id} = nte.${t.noteToTag.noteId}")
         }
         searchFilters.add("n.${t.notes.isDeleted} ${if(searchInDeleted)  "!= 0" else "= 0"}")
         query.append(searchFilters.joinToString(prefix = " where ", separator = " and "))
         query.append(" group by n.${t.notes.id}")
         if (isNotEmpty(tagIdsToExclude)) {
-            fun excludeTagId(tagId:Long) = " group_concat(':'||nt.${t.noteToTag.tagId}||':') not like '%:'||nt.${tagId}||':%'"
+            fun excludeTagId(tagId:Long) = " group_concat(':'||nte.${t.noteToTag.tagId}||':') not like '%:'||${tagId}||':%'"
             query.append(" having ${tagIdsToExclude?.asSequence()?.map { excludeTagId(it) }?.joinToString(separator = " and ")}")
         }
         repo.readableDatabase.doInTransaction(errCode = ERR_GET_NOTES) {
@@ -172,7 +172,7 @@ class DataManager(private val context: Context, private val dbName: String? = "m
                     )
                 }
             )
-            BeRespose(data = ListOfItems(partialResult = !allRowsFetched, items = result))
+            BeRespose(data = ListOfItems(complete = allRowsFetched, items = result))
         }
     }
 

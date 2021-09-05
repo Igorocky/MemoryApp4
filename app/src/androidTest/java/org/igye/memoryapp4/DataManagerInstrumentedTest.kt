@@ -205,14 +205,121 @@ class DataManagerInstrumentedTest {
         val tag1Id = dm.inTestSaveTag("tag1").id
         val tag2Id = dm.inTestSaveTag("tag2").id
         val tag3Id = dm.inTestSaveTag("tag3").id
-        runBlocking { dm.saveNewNote("note1", listOf(tag1Id, tag2Id)) }
-        runBlocking { dm.saveNewNote("note2", listOf(tag2Id, tag3Id)) }
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2"
+        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
 
         //when
         val notesResp = runBlocking { dm.getNotes() }
 
         //then
-        assertEquals(2, notesResp.data!!.items.size)
+        val notes = notesResp.data!!.items
+        assertEquals(2, notes.size)
+        assertTrue(notesResp.data!!.complete)
+        val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
+            map.put(note.id, note)
+            map
+        }
+        assertEquals(note1TextExpected, notesMap[note1Id]?.text)
+        assertEquals(setOf(tag1Id, tag2Id), notesMap[note1Id]?.tagIds?.toSet())
+        assertEquals(note2TextExpected, notesMap[note2Id]?.text)
+        assertEquals(setOf(tag2Id, tag3Id), notesMap[note2Id]?.tagIds?.toSet())
+    }
+
+    @Test
+    fun getNotes_searches_by_tags_to_include_only() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2"
+        val note3TextExpected = "note3"
+        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+
+        //when
+        val notesResp = runBlocking { dm.getNotes(tagIdsToInclude = listOf(tag3Id)) }
+
+        //then
+        val notes = notesResp.data!!.items
+        assertEquals(2, notes.size)
+        assertTrue(notesResp.data!!.complete)
+        val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
+            map.put(note.id, note)
+            map
+        }
+        assertEquals(note2TextExpected, notesMap[note2Id]?.text)
+        assertEquals(setOf(tag2Id, tag3Id), notesMap[note2Id]?.tagIds?.toSet())
+        assertEquals(note3TextExpected, notesMap[note3Id]?.text)
+        assertEquals(setOf(tag3Id, tag4Id), notesMap[note3Id]?.tagIds?.toSet())
+    }
+
+    @Test
+    fun getNotes_searches_by_tags_to_exclude_only() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2"
+        val note3TextExpected = "note3"
+        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+
+        //when
+        val notesResp = runBlocking { dm.getNotes(tagIdsToExclude = listOf(tag1Id,tag4Id)) }
+
+        //then
+        val notes = notesResp.data!!.items
+        assertEquals(1, notes.size)
+        assertTrue(notesResp.data!!.complete)
+        val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
+            map.put(note.id, note)
+            map
+        }
+        assertEquals(note2TextExpected, notesMap[note2Id]?.text)
+        assertEquals(setOf(tag2Id, tag3Id), notesMap[note2Id]?.tagIds?.toSet())
+    }
+
+    @Test
+    fun getNotes_searches_by_both_tags_to_include_and_exclude() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val tag5Id = dm.inTestSaveTag("tag5").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2"
+        val note3TextExpected = "note3"
+        val note4TextExpected = "note4"
+        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+        val note4Id = runBlocking { dm.saveNewNote(note4TextExpected, listOf(tag4Id, tag5Id)) }.data!!.id
+
+        //when
+        val notesResp = runBlocking { dm.getNotes(tagIdsToInclude = listOf(tag3Id), tagIdsToExclude = listOf(tag2Id)) }
+
+        //then
+        val notes = notesResp.data!!.items
+        assertEquals(1, notes.size)
+        assertTrue(notesResp.data!!.complete)
+        val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
+            map.put(note.id, note)
+            map
+        }
+        assertEquals(note3TextExpected, notesMap[note3Id]?.text)
+        assertEquals(setOf(tag3Id, tag4Id), notesMap[note3Id]?.tagIds?.toSet())
     }
 
     private fun createInmemoryDataManager() = DataManager(context = appContext, dbName = null)
