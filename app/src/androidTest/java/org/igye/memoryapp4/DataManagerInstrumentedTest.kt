@@ -104,6 +104,29 @@ class DataManagerInstrumentedTest {
     }
 
     @Test
+    fun saveNewNote_doesnt_save_new_note_when_there_is_duplication_in_tags() {
+        //given
+        val dm = createInmemoryDataManager()
+        assertEquals(0, getAllTags(dm).size)
+        assertEquals(0, getAllNotes(dm).size)
+        val expectedNoteText = "text-test-345683462354"
+        val tag = dm.inTestSaveTag("111")
+
+        //when
+        val resp: BeRespose<Note> = runBlocking { dm.saveNewNote(textArg = expectedNoteText, tagIds = listOf(tag.id,tag.id)) }
+
+        //then
+        assertEquals(114,resp.err!!.code)
+        assertEquals(
+            "SQLiteConstraintException UNIQUE constraint failed: " +
+                "NOTES_TO_TAGS.tag_id, NOTES_TO_TAGS.note_id (code 2067 SQLITE_CONSTRAINT_UNIQUE)",
+            resp.err!!.msg
+        )
+        val allNotes = getAllNotes(dm)
+        assertEquals(0, allNotes.size)
+    }
+
+    @Test
     fun backup_and_restore_work_correctly() {
         //given
         val dm = DataManager(context = appContext, dbName = "test-backup-and-restore")
@@ -173,6 +196,23 @@ class DataManagerInstrumentedTest {
         //then
         assertEquals(1, allTags.size)
         assertEquals(tag2Id, allTags[0].id)
+    }
+
+    @Test
+    fun getNotes_returns_all_notes_if_no_filters_were_specified() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        runBlocking { dm.saveNewNote("note1", listOf(tag1Id, tag2Id)) }
+        runBlocking { dm.saveNewNote("note2", listOf(tag2Id, tag3Id)) }
+
+        //when
+        val notesResp = runBlocking { dm.getNotes() }
+
+        //then
+        assertEquals(2, notesResp.data!!.items.size)
     }
 
     private fun createInmemoryDataManager() = DataManager(context = appContext, dbName = null)

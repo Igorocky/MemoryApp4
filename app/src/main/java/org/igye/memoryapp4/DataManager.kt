@@ -3,13 +3,12 @@ package org.igye.memoryapp4
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.igye.memoryapp4.Utils.isNotEmpty
 import java.io.File
-import java.lang.StringBuilder
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import kotlin.collections.ArrayList
 
 
 class DataManager(private val context: Context, private val dbName: String? = "memory-app-db") {
@@ -28,6 +27,7 @@ class DataManager(private val context: Context, private val dbName: String? = "m
     private val ERR_CREATE_NOTE = 114
 
     private val ERR_GET_TAGS = 201
+    private val ERR_GET_NOTES = 202
 
     private val ERR_UPDATE_TAG_NAME_EMPTY = 301
     private val ERR_UPDATE_TAG_NAME_DUPLICATED = 302
@@ -125,6 +125,54 @@ class DataManager(private val context: Context, private val dbName: String? = "m
                     BeRespose(data = newNote.copy(tagIds = tagIds))
                 }
             }
+        }
+    }
+
+    suspend fun getNotes(
+        tagIdsToInclude:List<Long>? = null,
+        tagIdsToExclude:List<Long>? = null,
+        searchInDeleted:Boolean = false
+    ): BeRespose<ListOfItems<Note>> = withContext(Dispatchers.IO) {
+        val query = StringBuilder(
+            """select n.${t.notes.id}, 
+                max(n.${t.notes.createdAt}) as ${t.notes.createdAt}, 
+                max(n.${t.notes.isDeleted}) as ${t.notes.isDeleted}, 
+                max(n.${t.notes.text}) as ${t.notes.text},
+                (select group_concat(t.${t.noteToTag.tagId}) from ${t.noteToTag} t where t.${t.noteToTag.noteId} = n.${t.notes.id}) as tagIds"""
+        )
+        val searchFilters = ArrayList<String>()
+        if (isNotEmpty(tagIdsToInclude)) {
+            query.append(" from ${t.noteToTag} nt inner join ${t.notes} n on nt.${t.noteToTag.noteId} = n.${t.notes.id}")
+            searchFilters.add(" nt.${t.noteToTag.tagId} in (${tagIdsToInclude!!.joinToString(separator = ",")})")
+        } else {
+            query.append(" from ${t.notes} n")
+            if (isNotEmpty(tagIdsToExclude)) {
+                query.append(" inner join ${t.noteToTag} nt on n.${t.notes.id} = nt.${t.noteToTag.noteId}")
+            }
+        }
+        searchFilters.add("n.${t.notes.isDeleted} ${if(searchInDeleted)  "!= 0" else "= 0"}")
+        query.append(searchFilters.joinToString(prefix = " where ", separator = " and "))
+        query.append(" group by n.${t.notes.id}")
+        if (isNotEmpty(tagIdsToExclude)) {
+            fun excludeTagId(tagId:Long) = " group_concat(':'||nt.${t.noteToTag.tagId}||':') not like '%:'||nt.${tagId}||':%'"
+            query.append(" having ${tagIdsToExclude?.asSequence()?.map { excludeTagId(it) }?.joinToString(separator = " and ")}")
+        }
+        repo.readableDatabase.doInTransaction(errCode = ERR_GET_NOTES) {
+            val (allRowsFetched, result) = repo.select(
+                query = query.toString(),
+                rowsMax = 100,
+                columnNames = listOf(t.notes.id, t.notes.createdAt, t.notes.isDeleted, t.notes.text, "tagIds"),
+                rowMapper = {
+                    Note(
+                        id = it.getLong(),
+                        createdAt = it.getLong(),
+                        isDeleted = if (it.getLong() == 0L) false else true,
+                        text = it.getString(),
+                        tagIds = it.getString().splitToSequence(",").map { it.toLong() }.toList()
+                    )
+                }
+            )
+            BeRespose(data = ListOfItems(partialResult = !allRowsFetched, items = result))
         }
     }
 

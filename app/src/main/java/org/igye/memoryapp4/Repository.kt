@@ -24,13 +24,24 @@ class Repository(context: Context, dbName: String?) : SQLiteOpenHelper(context, 
                     CREATE TABLE ${t.notes} (
                         ${t.notes.id} integer primary key,
                         ${t.notes.createdAt} integer not null,
-                        ${t.notes.text} text not null
+                        ${t.notes.text} text not null,
+                        ${t.notes.isDeleted} integer not null default 0
                     )
             """)
             execSQL("""
                     CREATE TABLE ${t.noteToTag} (
                         ${t.noteToTag.noteId} integer references ${t.notes}(${t.notes.id}) on update restrict on delete restrict,
                         ${t.noteToTag.tagId} integer references ${t.tags}(${t.tags.id}) on update restrict on delete restrict
+                    )
+            """)
+            execSQL("""
+                    CREATE UNIQUE INDEX idx_${t.noteToTag}_${t.noteToTag.tagId}_${t.noteToTag.noteId} on ${t.noteToTag} (
+                        ${t.noteToTag.tagId}, ${t.noteToTag.noteId}
+                    )
+            """)
+            execSQL("""
+                    CREATE INDEX idx_${t.noteToTag}_${t.noteToTag.noteId} on ${t.noteToTag} (
+                        ${t.noteToTag.noteId}
                     )
             """)
         }
@@ -169,16 +180,17 @@ object DB_V1 {
     object TagsTable {
         override fun toString() = "TAGS"
         val id = "id"
-        val name = "name"
         val createdAt = "createdAt"
+        val name = "name"
     }
 
     val notes = NotesTable
     object NotesTable {
         override fun toString() = "NOTES"
         val id = "id"
-        val text = "text"
         val createdAt = "createdAt"
+        val isDeleted = "isDeleted"
+        val text = "text"
     }
 
     val noteToTag = NotesToTagsTable
