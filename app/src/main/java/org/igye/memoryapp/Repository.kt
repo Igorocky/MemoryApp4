@@ -1,4 +1,4 @@
-package org.igye.memoryapp4
+package org.igye.memoryapp
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase

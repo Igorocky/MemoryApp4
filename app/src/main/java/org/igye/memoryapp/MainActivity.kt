@@ -1,4 +1,4 @@
-package org.igye.memoryapp4
+package org.igye.memoryapp
 
 import android.os.Bundle
 import android.util.Log

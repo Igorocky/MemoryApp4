@@ -1,4 +1,4 @@
-package org.igye.memoryapp4
+package org.igye.memoryapp
 
 import org.junit.Test
 

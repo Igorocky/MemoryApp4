@@ -1,4 +1,4 @@
-package org.igye.memoryapp4
+package org.igye.memoryapp
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -22,7 +22,7 @@ class DataManagerInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("org.igye.memoryapp4", appContext.packageName)
+        assertEquals("org.igye.memoryapp", appContext.packageName)
     }
 
     @Test

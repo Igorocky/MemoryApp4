@@ -1,4 +1,4 @@
-package org.igye.memoryapp4
+package org.igye.memoryapp
 
 object Utils {
     fun <E> isEmpty(col: Collection<E>?): Boolean = col?.isEmpty()?:true
