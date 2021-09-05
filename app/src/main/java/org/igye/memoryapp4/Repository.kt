@@ -3,6 +3,8 @@ package org.igye.memoryapp4
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import androidx.core.database.getLongOrNull
+import androidx.core.database.getStringOrNull
 import androidx.core.database.sqlite.transaction
 import java.time.Instant
 
@@ -43,7 +45,8 @@ class Repository(context: Context, dbName: String?) : SQLiteOpenHelper(context, 
     }
 
     interface InsertTagStmt {fun exec(name: String): Tag} var insertTagStmt: InsertTagStmt? = null
-    var updateTagStmt: ((id:Long, name:String) -> Int)? = null
+    interface UpdateTagStmt {fun exec(id: Long, name: String): Int} var updateTagStmt: UpdateTagStmt? = null
+    interface DeleteTagStmt {fun exec(id: Long): Int} var deleteTagStmt: DeleteTagStmt? = null
 
     override fun onOpen(db: SQLiteDatabase?) {
         super.onOpen(db)
@@ -57,14 +60,58 @@ class Repository(context: Context, dbName: String?) : SQLiteOpenHelper(context, 
             }
 
         }
-        updateTagStmt = object : (Long, String) -> Int {
+        updateTagStmt = object : UpdateTagStmt {
             private val stmt = db!!.compileStatement("update ${t.tags} set ${t.tags.name} = ? where ${t.tags.id} = ?")
-            override fun invoke(id: Long, name: String): Int {
-                val createdAt = Instant.now().toEpochMilli()
+            override fun exec(id: Long, name: String): Int {
                 stmt.bindString(1, name)
-                stmt.bindLong(2, createdAt)
+                stmt.bindLong(2, id)
                 return stmt.executeUpdateDelete()
             }
+        }
+        deleteTagStmt = object : DeleteTagStmt {
+            private val stmt = db!!.compileStatement("delete from ${t.tags} where ${t.tags.id} = ?")
+            override fun exec(id: Long): Int {
+                stmt.bindLong(1, id)
+                return stmt.executeUpdateDelete()
+            }
+        }
+    }
+
+    interface SelectedRow { fun getLong():Long fun getLongOrNull():Long? fun getString():String fun getStringOrNull():String? }
+    fun <T> select(
+        query:String,
+        args:Array<String>? = null,
+        rowsMax:Long? = null,
+        columnNames:List<String>,
+        rowMapper:(SelectedRow) -> T,
+    ): Pair<Boolean, List<T>> {
+        return readableDatabase.rawQuery(
+            query,
+            args
+        ).use { cursor ->
+            val result = ArrayList<T>()
+            if (cursor.moveToFirst()) {
+                val columnIndexes = columnNames.map { cursor.getColumnIndexOrThrow(it) }
+                while (!cursor.isAfterLast && (rowsMax == null || result.size < rowsMax)) {
+                    result.add(rowMapper(object : SelectedRow{
+                        private var curColumn = 0
+                        override fun getLong(): Long {
+                            return cursor.getLong(columnIndexes[curColumn++])
+                        }
+                        override fun getString():String {
+                            return cursor.getString(columnIndexes[curColumn++])
+                        }
+                        override fun getLongOrNull(): Long? {
+                            return cursor.getLongOrNull(columnIndexes[curColumn++])
+                        }
+                        override fun getStringOrNull():String? {
+                            return cursor.getStringOrNull(columnIndexes[curColumn++])
+                        }
+                    }))
+                    cursor.moveToNext()
+                }
+            }
+            Pair(cursor.isAfterLast, result)
         }
     }
 }

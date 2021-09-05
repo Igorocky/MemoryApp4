@@ -64,7 +64,7 @@ class MainActivityViewModel: ViewModel() {
 
     @JavascriptInterface
     fun getAllTags(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
-        callFeCallbackForDto(cbId,dataManager!!.getAllTags())
+        callFeCallbackForDto(cbId,dataManager!!.getTags())
     }
 
     data class UpdateTagArgs(val id:Long, val name: String)

@@ -28,15 +28,15 @@ class DataManagerInstrumentedTest {
     @Test
     fun saveNewTag_saves_new_tag() {
         //given
-        val dm = DataManager(context = appContext, dbName = null)
-        assertEquals(0, (runBlocking{ dm.getAllTags() }.data as List<Tag>).size)
+        val dm = createInmemoryDataManager()
+        assertEquals(0, (runBlocking{ dm.getTags() }.data as List<Tag>).size)
         val expectedTagName = "test-tag"
 
         //when
         runBlocking { dm.saveNewTag(expectedTagName) }
 
         //then
-        val tags = runBlocking { dm.getAllTags() }.data as List<Tag>
+        val tags = runBlocking { dm.getTags() }.data as List<Tag>
         assertEquals(1, tags.size)
         assertEquals(expectedTagName, tags[0].name)
     }
@@ -44,7 +44,7 @@ class DataManagerInstrumentedTest {
     @Test
     fun saveNewNote_saves_new_note_with_few_tags() {
         //given
-        val dm = DataManager(context = appContext, dbName = null)
+        val dm = createInmemoryDataManager()
         assertEquals(0, getAllTags(dm).size)
         assertEquals(0, getAllNotes(dm).size)
         val expectedNoteText = "text-test-345683462354"
@@ -66,7 +66,7 @@ class DataManagerInstrumentedTest {
     @Test
     fun saveNewNote_doesnt_save_new_note_when_nonexistent_tag_id_is_provided() {
         //given
-        val dm = DataManager(context = appContext, dbName = null)
+        val dm = createInmemoryDataManager()
         assertEquals(0, getAllTags(dm).size)
         assertEquals(0, getAllNotes(dm).size)
         val expectedNoteText = "text-test-345683462354"
@@ -91,28 +91,25 @@ class DataManagerInstrumentedTest {
     fun backup_and_restore_work_correctly() {
         //given
         val dm = DataManager(context = appContext, dbName = "test-backup-and-restore")
-        fun getAllTags() = runBlocking{ dm.getAllTags() }.data!!
-        fun saveTag(name:String) = runBlocking { dm.saveNewTag(name) }.data!!
-        fun deleteTag(id:Long) = runBlocking { dm.deleteTag(id) }
 
-        getAllTags().forEach{deleteTag(it.id)}
+        dm.inTestGetAllTags().forEach{dm.inTestDeleteTag(it.id)}
 
         //when: prepare data before backup
-        val tag1Id: Long = saveTag("tag1").id
-        val tag2Id: Long = saveTag("tag2").id
+        val tag1Id: Long = dm.inTestSaveTag("tag1").id
+        val tag2Id: Long = dm.inTestSaveTag("tag2").id
         //then
-        getAllTags().asSequence().map { it.id }.toSet().also { it.contains(tag1Id) }.also { it.contains(tag2Id) }
+        dm.inTestGetAllTags().asSequence().map { it.id }.toSet().also { it.contains(tag1Id) }.also { it.contains(tag2Id) }
 
         //when:do backup
         val backup = runBlocking { dm.doBackup() }.data!!
         //then
-        getAllTags().asSequence().map { it.id }.toSet().also { it.contains(tag1Id) }.also { it.contains(tag2Id) }
+        dm.inTestGetAllTags().asSequence().map { it.id }.toSet().also { it.contains(tag1Id) }.also { it.contains(tag2Id) }
 
         //when:modify data after backup
-        val tag3Id: Long = saveTag("tag3").id
-        deleteTag(tag1Id)
+        val tag3Id: Long = dm.inTestSaveTag("tag3").id
+        dm.inTestDeleteTag(tag1Id)
         //then
-        getAllTags().asSequence().map { it.id }.toSet()
+        dm.inTestGetAllTags().asSequence().map { it.id }.toSet()
             .also { !it.contains(tag1Id) }
             .also { it.contains(tag2Id) }
             .also { it.contains(tag3Id) }
@@ -120,11 +117,53 @@ class DataManagerInstrumentedTest {
         //when: restore data from the backup
         runBlocking { dm.restoreFromBackup(backup.name) }
         //then
-        getAllTags().asSequence().map { it.id }.toSet()
+        dm.inTestGetAllTags().asSequence().map { it.id }.toSet()
             .also { it.contains(tag1Id) }
             .also { it.contains(tag2Id) }
             .also { !it.contains(tag3Id) }
     }
+
+    @Test
+    fun getTags_returns_all_tags_when_no_filters_are_specified() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1-abc").id
+        val tag2Id = dm.inTestSaveTag("tag2-dEf").id
+        val tag3Id = dm.inTestSaveTag("tag3-ghi").id
+
+        //when
+        val allTags = runBlocking { dm.getTags() }.data!!
+
+        //then
+        assertEquals(3, allTags.size)
+        val tagIds = allTags.asSequence().map { it.id }.toSet()
+        assertTrue(tagIds.contains(tag1Id))
+        assertTrue(tagIds.contains(tag2Id))
+        assertTrue(tagIds.contains(tag3Id))
+
+    }
+
+    @Test
+    fun getTags_returns_only_specified_in_filter_tags() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1-abc").id
+        val tag2Id = dm.inTestSaveTag("tag2-dEf").id
+        val tag3Id = dm.inTestSaveTag("tag3-ghi").id
+
+        //when
+        val allTags = runBlocking { dm.getTags(nameContains = "De") }.data!!
+
+        //then
+        assertEquals(1, allTags.size)
+        assertEquals(tag2Id, allTags[0].id)
+    }
+
+    private fun createInmemoryDataManager() = DataManager(context = appContext, dbName = null)
+
+    private inline fun DataManager.inTestSaveTag(name:String): Tag = runBlocking { saveNewTag(name) }.data!!
+    private inline fun DataManager.inTestGetAllTags(): List<Tag> = runBlocking{ getTags() }.data!!
+    private inline fun DataManager.inTestDeleteTag(id:Long) = runBlocking { deleteTag(id) }
 
     private fun getAllNotes(dm:DataManager): List<Note> {
         val repo = dm.getRepo()

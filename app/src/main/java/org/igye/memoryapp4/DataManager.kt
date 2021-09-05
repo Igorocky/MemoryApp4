@@ -5,6 +5,7 @@ import android.database.SQLException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.lang.StringBuilder
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -65,19 +66,13 @@ class DataManager(private val context: Context, private val dbName: String? = "m
             BeRespose(err = BeErr(code = ERR_UPDATE_TAG_NAME_EMPTY, msg = "Name of a tag should not be empty."))
         } else {
             repo.writableDatabase.doInTransaction {
-                compileStatement(
-                    "update ${t.tags} set ${t.tags.name} = ? where ${t.tags.id} = ?"
-                ).use { stmt ->
-                    stmt.bindString(1, name)
-                    stmt.bindLong(2, id)
-                    try {
-                        BeRespose(data = stmt.executeUpdateDelete())
-                    } catch (ex: SQLException) {
-                        if (ex.message?.contains("UNIQUE constraint failed: ${t.tags}.${t.tags.name}") ?: false) {
-                            BeRespose(err = BeErr(code = ERR_UPDATE_TAG_NAME_DUPLICATED, msg = "'${name}' tag already exists."))
-                        } else {
-                            BeRespose(err = BeErr(code = ERR_UPDATE_TAG_SQL_EXCEPTION, msg = "SQLException: ${ex.message ?: "..."}"))
-                        }
+                try {
+                    BeRespose(data = repo.updateTagStmt!!.exec(id=id,name=name))
+                } catch (ex: SQLException) {
+                    if (ex.message?.contains("UNIQUE constraint failed: ${t.tags}.${t.tags.name}") ?: false) {
+                        BeRespose(err = BeErr(code = ERR_UPDATE_TAG_NAME_DUPLICATED, msg = "'${name}' tag already exists."))
+                    } else {
+                        BeRespose(err = BeErr(code = ERR_UPDATE_TAG_SQL_EXCEPTION, msg = "SQLException: ${ex.message ?: "..."}"))
                     }
                 }
             }
@@ -86,42 +81,33 @@ class DataManager(private val context: Context, private val dbName: String? = "m
 
     suspend fun deleteTag(id:Long): BeRespose<Int> = withContext(Dispatchers.IO) {
         repo.writableDatabase.doInTransaction {
-            compileStatement(
-                "delete from ${t.tags} where ${t.tags.id} = ?"
-            ).use { stmt ->
-                stmt.bindLong(1, id)
-                try {
-                    BeRespose(data = stmt.executeUpdateDelete())
-                } catch (ex: SQLException) {
-                    BeRespose(err = BeErr(code = ERR_DELETE_TAG_SQL_EXCEPTION, msg = "SQLException: ${ex.message ?: "..."}"))
-                }
+            try {
+                BeRespose(data = repo.deleteTagStmt!!.exec(id))
+            } catch (ex: SQLException) {
+                BeRespose(err = BeErr(code = ERR_DELETE_TAG_SQL_EXCEPTION, msg = "SQLException: ${ex.message ?: "..."}"))
             }
         }
     }
 
-    suspend fun getAllTags(): BeRespose<List<Tag>> = withContext(Dispatchers.IO) {
-        repo.readableDatabase.doInTransaction {
-            rawQuery(
-                "select ${t.tags.id}, ${t.tags.createdAt}, ${t.tags.name} from ${t.tags}",
-                null
-            ).use { cursor ->
-                val result = ArrayList<Tag>()
-                if (cursor.moveToFirst()) {
-                    val idColumnIndex = cursor.getColumnIndex(t.tags.id)
-                    val createdAtColumnIndex = cursor.getColumnIndex(t.tags.createdAt)
-                    val nameColumnIndex = cursor.getColumnIndex(t.tags.name)
-                    while (!cursor.isAfterLast) {
-                        result.add(Tag(
-                            id = cursor.getLong(idColumnIndex),
-                            createdAt = cursor.getLong(createdAtColumnIndex),
-                            name = cursor.getString(nameColumnIndex),
-                        ))
-                        cursor.moveToNext()
-                    }
-                }
-                BeRespose(data = result)
-            }
+    suspend fun getTags(nameContains:String? = null): BeRespose<List<Tag>> = withContext(Dispatchers.IO) {
+        val query = StringBuilder()
+        val args = ArrayList<String>()
+        query.append("select ${t.tags.id}, ${t.tags.createdAt}, ${t.tags.name} from ${t.tags}")
+        if (nameContains != null) {
+            query.append(" where lower(${t.tags.name}) like ?")
+            args.add("%${nameContains.lowercase()}%")
         }
+        query.append(" order by ${t.tags.name}")
+        BeRespose(data = repo.select(
+            query = query.toString(),
+            args = args.toTypedArray(),
+            columnNames = listOf(t.tags.id, t.tags.createdAt, t.tags.name),
+            rowMapper = {Tag(
+                id = it.getLong(),
+                createdAt = it.getLong(),
+                name = it.getString(),
+            )}
+        ).second)
     }
 
     suspend fun saveNewNote(textArg:String, tagIds: List<Long>): BeRespose<Note> = withContext(Dispatchers.IO) {
