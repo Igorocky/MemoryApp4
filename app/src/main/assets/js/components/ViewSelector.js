@@ -10,6 +10,7 @@ const DEBUG_VIEW = 'debug'
 const PAGE_1_VIEW = 'page1'
 const PAGE_2_VIEW = 'page2'
 const TAGS_VIEW = 'tags'
+const BACKUPS_VIEW = 'backups'
 const SEARCH_NOTES_VIEW = 'searchNotes'
 const ADD_NOTES_VIEW = 'addNotes'
 const VIEWS = {}
@@ -25,6 +26,7 @@ addView({name: HOME_PAGE_VIEW, component: HomePage})
 addView({name: DEBUG_VIEW, component: DebugPage})
 addView({name: PAGE_1_VIEW, component: Page1})
 addView({name: PAGE_2_VIEW, component: Page2})
+addView({name: BACKUPS_VIEW, component: BackupsView})
 addView({name: TAGS_VIEW, component: TagsView})
 addView({name: SEARCH_NOTES_VIEW, component: SearchNotesView})
 addView({name: ADD_NOTES_VIEW, component: AddNotesView})
@@ -42,7 +44,7 @@ const ViewSelector = ({}) => {
     }, [environmentName, pageTitle])
 
     useEffect(() => {
-        openView(ADD_NOTES_VIEW)
+        openView(BACKUPS_VIEW)
     }, [])
 
     function updatePageTitle() {
@@ -71,25 +73,46 @@ const ViewSelector = ({}) => {
     function renderControlButtons() {
         const selectedViewName = getSelectedView()?.name
         const bgColor = viewName => viewName == selectedViewName ? '#00ff72' : undefined
+        const additionalButtons = [
+            [
+                {key:BACKUPS_VIEW, viewName:BACKUPS_VIEW, iconName:"backup_table"},
+                {key:'11', viewName:PAGE_1_VIEW, symbol:"1"},
+                {key:'22', viewName:PAGE_2_VIEW, symbol:"2"},
+            ]
+        ]
         const buttons = [[
-            {iconName:"sell", onClick: () => openView(TAGS_VIEW), style:{backgroundColor:bgColor(TAGS_VIEW)}},
-            {iconName:"search", onClick: () => openView(SEARCH_NOTES_VIEW), style:{backgroundColor:bgColor(SEARCH_NOTES_VIEW)}},
-            {iconName:"add", onClick: () => openView(ADD_NOTES_VIEW), style:{backgroundColor:bgColor(ADD_NOTES_VIEW)}},
-            {symbol:"2", onClick: () => openView(PAGE_2_VIEW), style:{backgroundColor:bgColor(PAGE_2_VIEW)}},
-            {iconName:"adb", onClick: () => openView(DEBUG_VIEW), style:{backgroundColor:bgColor(DEBUG_VIEW)}},
-            {iconName:"more_horiz", onClick: () => setShowMoreControlButtons(old => !old)},
-        ]]
+            {key:TAGS_VIEW, viewName:TAGS_VIEW, iconName:"sell"},
+            {key:SEARCH_NOTES_VIEW, viewName:SEARCH_NOTES_VIEW, iconName:"search"},
+            {key:ADD_NOTES_VIEW, viewName:ADD_NOTES_VIEW, iconName:"add"},
+            {key:DEBUG_VIEW, viewName:DEBUG_VIEW, iconName:"adb"},
+            getOpenedViewButton(),
+            {key:'more', iconName:"more_horiz", onClick: () => setShowMoreControlButtons(old => !old)},
+        ].filter(e=>hasValue(e))]
+
         if (showMoreControlButtons) {
-            buttons.push([
-                {symbol:"?", onClick: () => openView(PAGE_1_VIEW), style:{backgroundColor:bgColor(PAGE_1_VIEW)}},
-                {symbol:"?", onClick: () => openView(PAGE_1_VIEW), style:{backgroundColor:bgColor(PAGE_1_VIEW)}},
-                {symbol:"?", onClick: () => openView(PAGE_1_VIEW), style:{backgroundColor:bgColor(PAGE_1_VIEW)}},
-            ])
+            buttons.push(...additionalButtons)
+        }
+
+        function getOpenedViewButton() {
+            const currViewName = query[VIEW_NAME_ATTR]
+            for (let i = 0; i < additionalButtons.length; i++) {
+                for (let j = 0; j < additionalButtons[i].length; j++) {
+                    if (additionalButtons[i][j].viewName == currViewName) {
+                        return additionalButtons[i][j]
+                    }
+                }
+            }
+            return null
+        }
+
+        function openViewInternal(viewName,params) {
+            setShowMoreControlButtons(false)
+            openView(viewName)
         }
 
         return re(KeyPad, {
             componentKey: "controlButtons",
-            keys: buttons,
+            keys: buttons.map(r => r.map(b => ({...b,onClick: b.onClick??(() => openViewInternal(b.viewName)), style:{backgroundColor:bgColor(b.viewName)}}))),
             variant: "outlined",
         })
     }

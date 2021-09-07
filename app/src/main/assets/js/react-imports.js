@@ -384,7 +384,18 @@ function useMessagePopup() {
         })
     }
 
-    return {renderMessagePopup, confirmAction, showMessage}
+    function showMessageWithProgress({text, okBtnText = 'ok'}) {
+        setDialogOpened(true)
+        setText(text)
+        setCancelBtnText(null)
+        setOnCancel(null)
+        setOkBtnText(okBtnText)
+        setOnOk(() => () => null)
+        setShowProgress(true)
+        return () => setDialogOpened(false)
+    }
+
+    return {renderMessagePopup, confirmAction, showMessage, showMessageWithProgress}
 }
 
 /**

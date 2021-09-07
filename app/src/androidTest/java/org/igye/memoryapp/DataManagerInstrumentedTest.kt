@@ -60,13 +60,13 @@ class DataManagerInstrumentedTest {
     fun saveNewNote_saves_new_note_with_few_tags() {
         //given
         val dm = createInmemoryDataManager()
-        assertEquals(0, getAllTags(dm).size)
+        assertEquals(0, dm.inTestGetAllTags().size)
         assertEquals(0, getAllNotes(dm).size)
         val expectedNoteText = "text-test-345683462354"
         runBlocking { dm.saveNewTag("111") }
         runBlocking { dm.saveNewTag("222") }
         runBlocking { dm.saveNewTag("333") }
-        val allTags = getAllTags(dm)
+        val allTags = dm.inTestGetAllTags()
         assertEquals(3, allTags.size)
 
         //when
@@ -82,13 +82,13 @@ class DataManagerInstrumentedTest {
     fun saveNewNote_doesnt_save_new_note_when_nonexistent_tag_id_is_provided() {
         //given
         val dm = createInmemoryDataManager()
-        assertEquals(0, getAllTags(dm).size)
+        assertEquals(0, dm.inTestGetAllTags().size)
         assertEquals(0, getAllNotes(dm).size)
         val expectedNoteText = "text-test-345683462354"
         runBlocking { dm.saveNewTag("111") }
         runBlocking { dm.saveNewTag("222") }
         runBlocking { dm.saveNewTag("333") }
-        val allTags = getAllTags(dm)
+        val allTags = dm.inTestGetAllTags()
         assertEquals(3, allTags.size)
         val nonExistentTagId = 100L
         assertTrue(nonExistentTagId != allTags[0].id && nonExistentTagId != allTags[1].id && nonExistentTagId != allTags[2].id)
@@ -107,7 +107,7 @@ class DataManagerInstrumentedTest {
     fun saveNewNote_doesnt_save_new_note_when_there_is_duplication_in_tags() {
         //given
         val dm = createInmemoryDataManager()
-        assertEquals(0, getAllTags(dm).size)
+        assertEquals(0, dm.inTestGetAllTags().size)
         assertEquals(0, getAllNotes(dm).size)
         val expectedNoteText = "text-test-345683462354"
         val tag = dm.inTestSaveTag("111")
@@ -577,7 +577,18 @@ class DataManagerInstrumentedTest {
     private fun createInmemoryDataManager() = DataManager(context = appContext, dbName = null)
 
     private inline fun DataManager.inTestSaveTag(name:String): Tag = runBlocking { saveNewTag(name) }.data!!
-    private inline fun DataManager.inTestGetAllTags(): List<Tag> = runBlocking{ getTags() }.data!!
+    private inline fun DataManager.inTestGetAllTags(): List<Tag> {
+        val repo = getRepo()
+        return repo.select(
+            query = "select ${repo.t.tags.id}, ${repo.t.tags.createdAt}, ${repo.t.tags.name} from ${repo.t.tags}",
+            columnNames = listOf(repo.t.tags.id, repo.t.tags.createdAt, repo.t.tags.name),
+            rowMapper = {Tag(
+                id = it.getLong(),
+                createdAt = it.getLong(),
+                name = it.getString()
+            )}
+        ).second
+    }
     private inline fun DataManager.inTestDeleteTag(id:Long) = runBlocking { deleteTag(id) }
 
     private fun getAllNotes(dm:DataManager): List<Note> {
@@ -590,19 +601,6 @@ class DataManagerInstrumentedTest {
                 createdAt = it.getLong(),
                 text = it.getString(),
                 tagIds = emptyList()
-            )}
-        ).second
-    }
-
-    private fun getAllTags(dm:DataManager): List<Tag> {
-        val repo = dm.getRepo()
-        return repo.select(
-            query = "select ${repo.t.tags.id}, ${repo.t.tags.createdAt}, ${repo.t.tags.name} from ${repo.t.tags}",
-            columnNames = listOf(repo.t.tags.id, repo.t.tags.createdAt, repo.t.tags.name),
-            rowMapper = {Tag(
-                id = it.getLong(),
-                createdAt = it.getLong(),
-                name = it.getString()
             )}
         ).second
     }

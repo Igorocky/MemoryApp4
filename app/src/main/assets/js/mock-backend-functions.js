@@ -107,6 +107,30 @@ function updateNote({id,text,tagIds,isDeleted}) {
     return okResponse(notesToUpdate.length)
 }
 
+function doBackup() {
+    return new Promise((resolve,reject) => {
+        setTimeout(() => resolve(listAvailableBackups()), 3000)
+    })
+}
+
+function listAvailableBackups() {
+    return okResponse([
+        {name:'backup-1', size:1122},
+        {name:'backup-2', size:456456},
+        {name:'backup-3', size:998877},
+    ])
+}
+
+function restoreFromBackup({backupName}) {
+    return new Promise((resolve,reject) => {
+        setTimeout(() => resolve(okResponse(`The database was restored from the backup ${backupName}`)), 3000)
+    })
+}
+
+async function deleteBackup({backupName}) {
+    return await listAvailableBackups()
+}
+
 function createBeFunctions(...funcs) {
     return funcs.reduce((a,e) => ({...a,[e.name]:promisifyBeFunc(e)}), {})
 }
@@ -149,4 +173,9 @@ const be = {
     saveNewNote: promisifyBeFunc(saveNewNote),
     getNotes: promisifyBeFunc(getNotes),
     updateNote: promisifyBeFunc(updateNote),
+
+    doBackup,
+    restoreFromBackup,
+    listAvailableBackups: promisifyBeFunc(listAvailableBackups),
+    deleteBackup: promisifyBeFunc(deleteBackup),
 }

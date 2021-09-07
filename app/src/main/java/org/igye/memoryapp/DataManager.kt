@@ -232,7 +232,7 @@ class DataManager(private val context: Context, private val dbName: String? = "m
         }
     }
 
-    suspend fun doBackup(): BeRespose<Backup> = withContext(Dispatchers.IO) {
+    suspend fun doBackup(): BeRespose<List<Backup>> = withContext(Dispatchers.IO) {
         val databasePath: File = context.getDatabasePath(dbName)
         val backupFileName = createBackupFileName(databasePath)
         val backupPath = File(backupDir, backupFileName)
@@ -242,7 +242,7 @@ class DataManager(private val context: Context, private val dbName: String? = "m
                 target = backupPath,
                 overwrite = true
             )
-            BeRespose(data = Backup(name = backupFileName, size = backupPath.length()))
+            listAvailableBackups()
         } finally {
             repo = createNewRepo()
         }
@@ -264,10 +264,15 @@ class DataManager(private val context: Context, private val dbName: String? = "m
     }
 
     suspend fun listAvailableBackups(): BeRespose<List<Backup>> = withContext(Dispatchers.IO) {
-        BeRespose(data = backupDir.listFiles().map { Backup(name = it.name, size = it.length()) })
+        BeRespose(
+            data = backupDir.listFiles().asSequence()
+                .sortedBy { -it.lastModified() }
+                .map { Backup(name = it.name, size = it.length()) }
+                .toList()
+        )
     }
 
-    suspend fun removeBackup(backupName:String): BeRespose<List<Backup>> = withContext(Dispatchers.IO) {
+    suspend fun deleteBackup(backupName:String): BeRespose<List<Backup>> = withContext(Dispatchers.IO) {
         File(backupDir, backupName).delete()
         listAvailableBackups()
     }
