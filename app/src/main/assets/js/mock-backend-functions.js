@@ -109,7 +109,7 @@ function updateNote({id,text,tagIds,isDeleted}) {
 
 function doBackup() {
     return new Promise((resolve,reject) => {
-        setTimeout(() => resolve(listAvailableBackups()), 3000)
+        setTimeout(() => resolve(okResponse({name:'new-backup-' + new Date(), size:4335})), 3000)
     })
 }
 

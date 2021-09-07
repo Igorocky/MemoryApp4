@@ -80,7 +80,7 @@ const BackupsView = ({query,openView,setPageTitle}) => {
             closeProgressWindow()
             if (!res.err) {
                 await showMessage({text: `A backup was created.`})
-                setAllBackups(res.data)
+                setAllBackups(prev => [res.data, ...prev])
                 setFocusedBackup(null)
             } else {
                 showError(res.err)

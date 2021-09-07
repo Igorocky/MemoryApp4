@@ -126,6 +126,42 @@ class MainActivityViewModel: ViewModel() {
         )
     }
 
+    @JavascriptInterface
+    fun doBackup(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+        callFeCallbackForDto(
+            cbId,
+            dataManager!!.doBackup()
+        )
+    }
+
+    @JavascriptInterface
+    fun listAvailableBackups(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+        callFeCallbackForDto(
+            cbId,
+            dataManager!!.listAvailableBackups()
+        )
+    }
+
+    data class RestoreFromBackupArgs(val backupName:String)
+    @JavascriptInterface
+    fun restoreFromBackup(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+        val argsDto = gson.fromJson(args, RestoreFromBackupArgs::class.java)
+        callFeCallbackForDto(
+            cbId,
+            dataManager!!.restoreFromBackup(backupName = argsDto.backupName)
+        )
+    }
+
+    data class DeleteBackupArgs(val backupName:String)
+    @JavascriptInterface
+    fun deleteBackup(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+        val argsDto = gson.fromJson(args, DeleteBackupArgs::class.java)
+        callFeCallbackForDto(
+            cbId,
+            dataManager!!.deleteBackup(backupName = argsDto.backupName)
+        )
+    }
+
     private fun callFeCallback(callBackId: Int, result: Any?) {
         webView!!.post {
             webView!!.loadUrl("javascript:callFeCallback($callBackId, $result)")

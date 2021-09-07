@@ -39,7 +39,9 @@ function createBeFunction(functionName) {
 const be = {
     add: async (a,b) => createBePromise('add', a, JSON.stringify(b)),
 
+    doBackup: createBeFunction('doBackup'),
     listAvailableBackups: createBeFunction('listAvailableBackups'),
+    restoreFromBackup: createSingleDtoArgBeFunction('restoreFromBackup'),
     deleteBackup: createSingleDtoArgBeFunction('deleteBackup'),
 
     saveNewTag: createSingleDtoArgBeFunction('saveNewTag'),
