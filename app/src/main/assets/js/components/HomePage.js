@@ -8,7 +8,7 @@ function HomePage({openView,setPageTitle}) {
     ])
 
     useEffect(() => {
-        setPageTitle('MemoryApp')
+        setPageTitle('TaggedNotes')
     }, [])
 
     function renderListOfAvailableViews() {

@@ -1,4 +1,4 @@
-package org.igye.memoryapp
+package org.igye.taggednotes
 
 object Utils {
     fun <E> isEmpty(col: Collection<E>?): Boolean = col?.isEmpty()?:true

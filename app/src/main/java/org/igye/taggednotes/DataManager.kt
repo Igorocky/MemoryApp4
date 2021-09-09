@@ -1,10 +1,10 @@
-package org.igye.memoryapp
+package org.igye.taggednotes
 
 import android.content.Context
 import android.database.sqlite.SQLiteStatement
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.igye.memoryapp.Utils.isNotEmpty
+import org.igye.taggednotes.Utils.isNotEmpty
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -12,7 +12,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 
-class DataManager(private val context: Context, private val dbName: String? = "memory-app-db") {
+class DataManager(private val context: Context, private val dbName: String? = "tagged-notes-db") {
     private val t = DB_V1
     private var repo = createNewRepo()
     fun getRepo() = repo
@@ -249,12 +249,16 @@ class DataManager(private val context: Context, private val dbName: String? = "m
     }
 
     suspend fun listAvailableBackups(): BeRespose<List<Backup>> = withContext(Dispatchers.IO) {
-        BeRespose(
-            data = backupDir.listFiles().asSequence()
-                .sortedBy { -it.lastModified() }
-                .map { Backup(name = it.name, size = it.length()) }
-                .toList()
-        )
+        if (!backupDir.exists()) {
+            BeRespose(data = emptyList())
+        } else {
+            BeRespose(
+                data = backupDir.listFiles().asSequence()
+                    .sortedBy { -it.lastModified() }
+                    .map { Backup(name = it.name, size = it.length()) }
+                    .toList()
+            )
+        }
     }
 
     suspend fun restoreFromBackup(backupName:String): BeRespose<String> = withContext(Dispatchers.IO) {

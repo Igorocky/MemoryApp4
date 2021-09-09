@@ -1,4 +1,4 @@
-package org.igye.memoryapp
+package org.igye.taggednotes
 
 data class BeErr(val code:Int, val msg: String)
 data class BeRespose<T>(val data: T? = null, val err: BeErr? = null) {

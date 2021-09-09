@@ -1,4 +1,4 @@
-package org.igye.memoryapp
+package org.igye.taggednotes
 
 import android.content.Context
 import android.net.Uri

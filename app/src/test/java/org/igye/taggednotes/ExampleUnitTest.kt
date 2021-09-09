@@ -1,4 +1,4 @@
-package org.igye.memoryapp
+package org.igye.taggednotes
 
 import org.junit.Test
 

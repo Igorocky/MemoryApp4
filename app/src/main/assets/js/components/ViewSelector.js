@@ -44,7 +44,7 @@ const ViewSelector = ({}) => {
     }, [environmentName, pageTitle])
 
     useEffect(() => {
-        openView(BACKUPS_VIEW)
+        openView(SEARCH_NOTES_VIEW)
     }, [])
 
     function updatePageTitle() {
@@ -84,7 +84,7 @@ const ViewSelector = ({}) => {
             {key:TAGS_VIEW, viewName:TAGS_VIEW, iconName:"sell"},
             {key:SEARCH_NOTES_VIEW, viewName:SEARCH_NOTES_VIEW, iconName:"search"},
             {key:ADD_NOTES_VIEW, viewName:ADD_NOTES_VIEW, iconName:"add"},
-            {key:DEBUG_VIEW, viewName:DEBUG_VIEW, iconName:"adb"},
+            // {key:DEBUG_VIEW, viewName:DEBUG_VIEW, iconName:"adb"},
             getOpenedViewButton(),
             {key:'more', iconName:"more_horiz", onClick: () => setShowMoreControlButtons(old => !old)},
         ].filter(e=>hasValue(e))]

@@ -1,2 +1,2 @@
-rootProject.name = "MemoryApp4"
+rootProject.name = "TaggedNotes"
 include ':app'

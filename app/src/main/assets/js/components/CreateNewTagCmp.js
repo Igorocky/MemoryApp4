@@ -27,7 +27,7 @@ const CreateNewTagCmp = ({onSave}) => {
                 autoFocus:true,
                 size:'small',
                 onChange: event => {
-                    const newName = event.nativeEvent.target.value.replaceAll(' ', '')
+                    const newName = event.nativeEvent.target.value.trim()
                     if (newName != tagName) {
                         setTagName(newName)
                     }
