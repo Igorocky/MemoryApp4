@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class MainActivityViewModel: WebViewViewModel() {
+class MainActivityViewModel: WebViewViewModel("ViewSelector") {
     private var dataManager: DataManager? = null
 
     override fun onCleared() {

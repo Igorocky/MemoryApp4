@@ -11,7 +11,7 @@ import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
 import com.google.gson.Gson
 
-abstract class WebViewViewModel: ViewModel() {
+abstract class WebViewViewModel(private val rootReactComponent: String): ViewModel() {
     protected var webView: WebView? = null
     protected val gson = Gson()
     protected val log = LoggerImpl(this.javaClass.simpleName)
@@ -39,7 +39,7 @@ abstract class WebViewViewModel: ViewModel() {
                 }
             }
             val assetLoader = WebViewAssetLoader.Builder()
-                .addPathHandler("/assets/", CustomAssetsPathHandler(appContext))
+                .addPathHandler("/assets/", CustomAssetsPathHandler(appContext, rootReactComponent))
                 .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(appContext))
                 .build()
             webView.webViewClient = LocalContentWebViewClient(assetLoader)

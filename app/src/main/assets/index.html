@@ -15,7 +15,6 @@
     <script src="js/data-functions.js"></script>
     <script src="js/svg-functions.js"></script>
 
-
     <script src="js/mock-backend-functions.js"></script>
 
     <script src="js/components/Pagination.js"></script>
@@ -36,8 +35,15 @@
     <script src="js/components/Page2.js"></script>
     <script src="js/components/DebugPage.js"></script>
     <script src="js/components/ViewSelector.js"></script>
+    <script src="js/components/SharedFileReceiver.js"></script>
 </head>
 <div id="react-container"></div>
-<script src="js/index.js"></script>
+<script>
+    const ROOT_REACT_COMPONENT = null
+    ReactDOM.render(
+        re(ROOT_REACT_COMPONENT??ViewSelector),
+        document.getElementById('react-container')
+    )
+</script>
 </body>
 </html>

@@ -4,8 +4,7 @@ import android.util.Log
 import org.slf4j.Logger
 import org.slf4j.Marker
 
-class LoggerImpl(name: String): Logger {
-    private val loggerName = name
+class LoggerImpl(private val loggerName: String): Logger {
     private val tag = "tn/$loggerName"
     private val defaultFormat = "%s"
 
