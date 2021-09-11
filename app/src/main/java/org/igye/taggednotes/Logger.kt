@@ -5,8 +5,9 @@ import org.slf4j.Logger
 import org.slf4j.Marker
 
 class LoggerImpl(name: String): Logger {
-    private val loggerName = name;
-    val defaultFormat = "%s"
+    private val loggerName = name
+    private val tag = "tn/$loggerName"
+    private val defaultFormat = "%s"
 
     override fun getName(): String {
         return loggerName
@@ -21,23 +22,23 @@ class LoggerImpl(name: String): Logger {
     }
 
     override fun trace(msg: String?) {
-        Log.v(Constants.LOG_TAG, msg?:"")
+        Log.v(tag, msg?:"")
     }
 
     override fun trace(format: String?, arg: Any?) {
-        Log.v(Constants.LOG_TAG, String.format(format?: defaultFormat, arg))
+        Log.v(tag, String.format(format?: defaultFormat, arg))
     }
 
     override fun trace(format: String?, arg1: Any?, arg2: Any?) {
-        Log.v(Constants.LOG_TAG, String.format(format?:defaultFormat, arg1, arg2))
+        Log.v(tag, String.format(format?:defaultFormat, arg1, arg2))
     }
 
     override fun trace(format: String?, vararg arguments: Any?) {
-        Log.v(Constants.LOG_TAG, String.format(format?:defaultFormat, *arguments))
+        Log.v(tag, String.format(format?:defaultFormat, *arguments))
     }
 
     override fun trace(msg: String?, t: Throwable?) {
-        Log.v(Constants.LOG_TAG, msg, t)
+        Log.v(tag, msg, t)
     }
 
     override fun trace(marker: Marker?, msg: String?) {
@@ -69,23 +70,23 @@ class LoggerImpl(name: String): Logger {
     }
 
     override fun debug(msg: String?) {
-        Log.d(Constants.LOG_TAG, msg?:"")
+        Log.d(tag, msg?:"")
     }
 
     override fun debug(format: String?, arg: Any?) {
-        Log.d(Constants.LOG_TAG, String.format(format?: defaultFormat, arg))
+        Log.d(tag, String.format(format?: defaultFormat, arg))
     }
 
     override fun debug(format: String?, arg1: Any?, arg2: Any?) {
-        Log.d(Constants.LOG_TAG, String.format(format?:defaultFormat, arg1, arg2))
+        Log.d(tag, String.format(format?:defaultFormat, arg1, arg2))
     }
 
     override fun debug(format: String?, vararg arguments: Any?) {
-        Log.d(Constants.LOG_TAG, String.format(format?:defaultFormat, *arguments))
+        Log.d(tag, String.format(format?:defaultFormat, *arguments))
     }
 
     override fun debug(msg: String?, t: Throwable?) {
-        Log.d(Constants.LOG_TAG, msg, t)
+        Log.d(tag, msg, t)
     }
 
     override fun debug(marker: Marker?, msg: String?) {
@@ -117,23 +118,23 @@ class LoggerImpl(name: String): Logger {
     }
 
     override fun info(msg: String?) {
-        Log.i(Constants.LOG_TAG, msg?:"")
+        Log.i(tag, msg?:"")
     }
 
     override fun info(format: String?, arg: Any?) {
-        Log.i(Constants.LOG_TAG, String.format(format?: defaultFormat, arg))
+        Log.i(tag, String.format(format?: defaultFormat, arg))
     }
 
     override fun info(format: String?, arg1: Any?, arg2: Any?) {
-        Log.i(Constants.LOG_TAG, String.format(format?:defaultFormat, arg1, arg2))
+        Log.i(tag, String.format(format?:defaultFormat, arg1, arg2))
     }
 
     override fun info(format: String?, vararg arguments: Any?) {
-        Log.i(Constants.LOG_TAG, String.format(format?:defaultFormat, *arguments))
+        Log.i(tag, String.format(format?:defaultFormat, *arguments))
     }
 
     override fun info(msg: String?, t: Throwable?) {
-        Log.i(Constants.LOG_TAG, msg, t)
+        Log.i(tag, msg, t)
     }
 
     override fun info(marker: Marker?, msg: String?) {
@@ -165,23 +166,23 @@ class LoggerImpl(name: String): Logger {
     }
 
     override fun warn(msg: String?) {
-        Log.w(Constants.LOG_TAG, msg?:"")
+        Log.w(tag, msg?:"")
     }
 
     override fun warn(format: String?, arg: Any?) {
-        Log.w(Constants.LOG_TAG, String.format(format?: defaultFormat, arg))
+        Log.w(tag, String.format(format?: defaultFormat, arg))
     }
 
     override fun warn(format: String?, vararg arguments: Any?) {
-        Log.w(Constants.LOG_TAG, String.format(format?:defaultFormat, *arguments))
+        Log.w(tag, String.format(format?:defaultFormat, *arguments))
     }
 
     override fun warn(format: String?, arg1: Any?, arg2: Any?) {
-        Log.w(Constants.LOG_TAG, String.format(format?:defaultFormat, arg1, arg2))
+        Log.w(tag, String.format(format?:defaultFormat, arg1, arg2))
     }
 
     override fun warn(msg: String?, t: Throwable?) {
-        Log.w(Constants.LOG_TAG, msg, t)
+        Log.w(tag, msg, t)
     }
 
     override fun warn(marker: Marker?, msg: String?) {
@@ -213,23 +214,23 @@ class LoggerImpl(name: String): Logger {
     }
 
     override fun error(msg: String?) {
-        Log.e(Constants.LOG_TAG, msg?:"")
+        Log.e(tag, msg?:"")
     }
 
     override fun error(format: String?, arg: Any?) {
-        Log.e(Constants.LOG_TAG, String.format(format?: defaultFormat, arg))
+        Log.e(tag, String.format(format?: defaultFormat, arg))
     }
 
     override fun error(format: String?, arg1: Any?, arg2: Any?) {
-        Log.e(Constants.LOG_TAG, String.format(format?:defaultFormat, arg1, arg2))
+        Log.e(tag, String.format(format?:defaultFormat, arg1, arg2))
     }
 
     override fun error(format: String?, vararg arguments: Any?) {
-        Log.e(Constants.LOG_TAG, String.format(format?:defaultFormat, *arguments))
+        Log.e(tag, String.format(format?:defaultFormat, *arguments))
     }
 
     override fun error(msg: String?, t: Throwable?) {
-        Log.e(Constants.LOG_TAG, msg, t)
+        Log.e(tag, msg, t)
     }
 
     override fun error(marker: Marker?, msg: String?) {
