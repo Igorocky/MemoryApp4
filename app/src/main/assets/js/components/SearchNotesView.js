@@ -1,7 +1,7 @@
 "use strict";
 
 const SearchNotesView = ({query,openView,setPageTitle}) => {
-    const {renderMessagePopup, showMessage, confirmAction} = useMessagePopup()
+    const {renderMessagePopup, confirmAction, showError} = useMessagePopup()
 
     const [allTags, setAllTags] = useState(null)
     const [allTagsMap, setAllTagsMap] = useState(null)
@@ -24,10 +24,6 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
             setAllTagsMap(allTags.reduce((a,t) => ({...a,[t.id]:t}), {}))
         }
     }, [allTags])
-
-    async function showError({code, msg}) {
-        return showMessage({text: `Error [${code}] - ${msg}`})
-    }
 
     async function doSearch() {
         setEditFilterMode(false)

@@ -287,7 +287,7 @@ class DataManager(private val context: Context, private val dbName: String? = "t
         doBackup()
     }
 
-    private val backupDir = File(context.getExternalFilesDir(null)!!.absolutePath + "/backup")
+    private val backupDir = Utils.getBackupsDir(context)
 
     private fun createNewRepo() = Repository(context, dbName)
 

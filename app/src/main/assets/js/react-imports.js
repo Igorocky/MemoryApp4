@@ -395,7 +395,11 @@ function useMessagePopup() {
         return () => setDialogOpened(false)
     }
 
-    return {renderMessagePopup, confirmAction, showMessage, showMessageWithProgress}
+    function showError({code, msg}) {
+        return showMessage({text: `Error [${code}] - ${msg}`})
+    }
+
+    return {renderMessagePopup, confirmAction, showMessage, showError, showMessageWithProgress}
 }
 
 /**

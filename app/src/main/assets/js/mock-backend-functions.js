@@ -8,11 +8,16 @@ function errResponse(errCode, msg) {
     return {err: {code:errCode,msg}}
 }
 
-function promisifyBeFunc(func) {
+function promisifyBeFunc(func, delay) {
     return function (...args) {
         return new Promise((resolve,reject) => {
             try {
-                resolve(func(...args))
+                if (hasValue(delay)) {
+                    setTimeout(() => resolve(func(...args)), delay)
+                } else {
+                    resolve(func(...args))
+                }
+
             } catch (ex) {
                 reject(ex)
             }
@@ -135,6 +140,18 @@ function createBeFunctions(...funcs) {
     return funcs.reduce((a,e) => ({...a,[e.name]:promisifyBeFunc(e)}), {})
 }
 
+function getSharedFileInfo() {
+    return okResponse({name: 'shared-file-name-111', uri: 'file://shared-file-name-111'})
+}
+
+function closeSharedFileReceiver() {
+    return okResponse({})
+}
+
+function saveSharedFile() {
+    return okResponse(12)
+}
+
 function fillDbWithMockData() {
     const numOfTags = 30
     const tags = ints(1,numOfTags)
@@ -178,4 +195,8 @@ const be = {
     restoreFromBackup,
     listAvailableBackups: promisifyBeFunc(listAvailableBackups),
     deleteBackup: promisifyBeFunc(deleteBackup),
+
+    getSharedFileInfo: promisifyBeFunc(getSharedFileInfo, 1000),
+    saveSharedFile: promisifyBeFunc(saveSharedFile, 1000),
+    closeSharedFileReceiver: promisifyBeFunc(closeSharedFileReceiver),
 }
