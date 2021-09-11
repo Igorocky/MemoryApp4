@@ -39,7 +39,7 @@ abstract class WebViewViewModel: ViewModel() {
                 }
             }
             val assetLoader = WebViewAssetLoader.Builder()
-                .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(appContext))
+                .addPathHandler("/assets/", CustomAssetsPathHandler(appContext))
                 .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(appContext))
                 .build()
             webView.webViewClient = LocalContentWebViewClient(assetLoader)
