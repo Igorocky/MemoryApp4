@@ -14,7 +14,7 @@ import com.google.gson.Gson
 abstract class WebViewViewModel: ViewModel() {
     protected var webView: WebView? = null
     protected val gson = Gson()
-    private val log = LoggerImpl(this.javaClass.simpleName)
+    protected val log = LoggerImpl(this.javaClass.simpleName)
 
     abstract fun getWebView(appContext: Context): WebView
 

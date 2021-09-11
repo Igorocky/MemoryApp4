@@ -11,6 +11,7 @@ class MainActivityViewModel: WebViewViewModel() {
     private var dataManager: DataManager? = null
 
     override fun onCleared() {
+        log.debug("Clearing")
         dataManager?.close()
         super.onCleared()
     }
