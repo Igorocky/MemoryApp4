@@ -145,7 +145,7 @@ function createBeFunctions(...funcs) {
 }
 
 function getSharedFileInfo() {
-    return okResponse({name: 'shared-file-name-111', uri: 'file://shared-file-name-111'})
+    return okResponse({name: 'shared-file-name-111', uri: 'file://shared-file-name-111', type: 'BACKUP'})
 }
 
 function closeSharedFileReceiver() {

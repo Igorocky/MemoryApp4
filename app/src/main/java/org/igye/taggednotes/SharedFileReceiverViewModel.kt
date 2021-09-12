@@ -29,9 +29,11 @@ class SharedFileReceiverViewModel: WebViewViewModel("SharedFileReceiver") {
 
     @JavascriptInterface
     fun getSharedFileInfo(cbId:Int) = viewModelScope.launch(Dispatchers.IO) {
+        val fileName = getFileName(sharedFileUri)
         callFeCallbackForDto(cbId, BeRespose(data = mapOf(
             "uri" to sharedFileUri,
-            "name" to getFileName(sharedFileUri),
+            "name" to fileName,
+            "type" to getFileType(fileName),
         )))
     }
 
@@ -54,6 +56,10 @@ class SharedFileReceiverViewModel: WebViewViewModel("SharedFileReceiver") {
             cursor.moveToFirst()
             return cursor.getString(nameIndex)
         }
+    }
+
+    private fun getFileType(fileName: String): SharedFileType {
+        return if (fileName.endsWith(".bks")) SharedFileType.KEYSTORE else SharedFileType.BACKUP
     }
 
     private fun copyFile(fileUri: String, fileType: SharedFileType, fileName: String): Long {
