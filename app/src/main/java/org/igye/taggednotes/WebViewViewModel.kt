@@ -39,7 +39,14 @@ abstract class WebViewViewModel(private val rootReactComponent: String): ViewMod
                 }
             }
             val assetLoader = WebViewAssetLoader.Builder()
-                .addPathHandler("/assets/", CustomAssetsPathHandler(appContext, rootReactComponent))
+                .addPathHandler(
+                    "/assets/",
+                    CustomAssetsPathHandler(
+                        appContext = appContext,
+                        rootReactComponent = rootReactComponent,
+                        feBeBridge = "js/android-fe-be-bridge.js"
+                    )
+                )
                 .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(appContext))
                 .build()
             webView.webViewClient = LocalContentWebViewClient(assetLoader)
@@ -50,14 +57,18 @@ abstract class WebViewViewModel(private val rootReactComponent: String): ViewMod
         return this.webView!!
     }
 
-    protected fun callFeCallback(callBackId: Int, result: Any?) {
+    private fun callFeCallback(callBackId: Long, result: Any?) {
         webView!!.post {
             webView!!.loadUrl("javascript:callFeCallback($callBackId, $result)")
         }
     }
 
-    protected fun callFeCallbackForDto(callBackId: Int, dto: Any) {
-        callFeCallback(callBackId, gson.toJson(dto))
+    protected fun <T> returnDtoToFrontend(callBackId: Long, dto: BeRespose<T>): BeRespose<T> {
+        if (callBackId >= 0) {
+            val dtoStr = gson.toJson(dto)
+            callFeCallback(callBackId, dtoStr)
+        }
+        return dto
     }
 
 }

@@ -5,7 +5,11 @@ import android.webkit.WebResourceResponse
 import androidx.webkit.WebViewAssetLoader
 import java.io.ByteArrayInputStream
 
-class CustomAssetsPathHandler(appContext: Context, private val rootReactComponent: String = "ViewSelector") : WebViewAssetLoader.PathHandler {
+class CustomAssetsPathHandler(
+    private val appContext: Context,
+    private val rootReactComponent: String = "ViewSelector",
+    private val feBeBridge: String
+) : WebViewAssetLoader.PathHandler {
     private val delegate = WebViewAssetLoader.AssetsPathHandler(appContext)
     override fun handle(path: String): WebResourceResponse? {
         val result = delegate.handle(path)
@@ -15,8 +19,11 @@ class CustomAssetsPathHandler(appContext: Context, private val rootReactComponen
                 result.encoding,
                 ByteArrayInputStream(
                     String(result.data.readBytes(), Charsets.UTF_8)
-                        .replaceFirst("js/testui-fe-be-bridge.js", "js/android-fe-be-bridge.js")
-                        .replaceFirst("const ROOT_REACT_COMPONENT = null", "const ROOT_REACT_COMPONENT = $rootReactComponent")
+                        .replaceFirst("js/testui-fe-be-bridge.js", feBeBridge)
+                        .replaceFirst(
+                            "const ROOT_REACT_COMPONENT = null",
+                            "const ROOT_REACT_COMPONENT = $rootReactComponent"
+                        )
                         .toByteArray()
                 )
             )

@@ -5,10 +5,12 @@ import android.net.Uri
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
 
 class MainActivityViewModel: WebViewViewModel("ViewSelector") {
+    private val self = this
     @Volatile var shareFile: ((Uri) -> Unit)? = null
     private lateinit var appContext: Context
     private lateinit var dataManager: DataManager
@@ -28,41 +30,41 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
 
     data class SaveNewTagArgs(val name:String)
     @JavascriptInterface
-    fun saveNewTag(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+    fun saveNewTag(cbId:Long, args:String): Deferred<BeRespose<Tag>> = viewModelScope.async(Dispatchers.Default) {
         val newTag = gson.fromJson(args, SaveNewTagArgs::class.java)
-        callFeCallbackForDto(cbId,dataManager.saveNewTag(newTag.name))
+        returnDtoToFrontend(cbId,dataManager.saveNewTag(newTag.name))
     }
 
     @JavascriptInterface
-    fun getAllTags(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
-        callFeCallbackForDto(cbId,dataManager.getTags())
+    fun getAllTags(cbId:Long, args:String): Deferred<BeRespose<List<Tag>>> = viewModelScope.async(Dispatchers.Default) {
+        returnDtoToFrontend(cbId,dataManager.getTags())
     }
 
     data class UpdateTagArgs(val id:Long, val name: String)
     @JavascriptInterface
-    fun updateTag(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+    fun updateTag(cbId:Long, args:String): Deferred<BeRespose<Int>> = viewModelScope.async(Dispatchers.Default) {
         val args = gson.fromJson(args, UpdateTagArgs::class.java)
-        callFeCallbackForDto(cbId,dataManager.updateTag(id = args.id, nameArg = args.name))
+        returnDtoToFrontend(cbId,dataManager.updateTag(id = args.id, nameArg = args.name))
     }
 
     data class DeleteTagArgs(val id:Long)
     @JavascriptInterface
-    fun deleteTag(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
-        callFeCallbackForDto(cbId,dataManager.deleteTag(id = gson.fromJson(args, DeleteTagArgs::class.java).id))
+    fun deleteTag(cbId:Long, args:String): Deferred<BeRespose<Int>> = viewModelScope.async(Dispatchers.Default) {
+        returnDtoToFrontend(cbId,dataManager.deleteTag(id = gson.fromJson(args, DeleteTagArgs::class.java).id))
     }
 
     data class SaveNewNoteArgs(val text:String, val tagIds: List<Long>)
     @JavascriptInterface
-    fun saveNewNote(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+    fun saveNewNote(cbId:Long, args:String): Deferred<BeRespose<Note>> = viewModelScope.async(Dispatchers.Default) {
         val newNote = gson.fromJson(args, SaveNewNoteArgs::class.java)
-        callFeCallbackForDto(cbId,dataManager.saveNewNote(textArg = newNote.text, tagIds = newNote.tagIds))
+        returnDtoToFrontend(cbId,dataManager.saveNewNote(textArg = newNote.text, tagIds = newNote.tagIds))
     }
 
     data class GetNotesArgs(val tagIdsToInclude: List<Long>? = null, val tagIdsToExclude: List<Long>? = null, val searchInDeleted: Boolean = false)
     @JavascriptInterface
-    fun getNotes(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+    fun getNotes(cbId:Long, args:String): Deferred<BeRespose<List<Note>>> = viewModelScope.async(Dispatchers.Default) {
         val filter = gson.fromJson(args, GetNotesArgs::class.java)
-        callFeCallbackForDto(
+        returnDtoToFrontend(
             cbId,
             dataManager.getNotes(
                 rowsMax = 100,
@@ -75,9 +77,9 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
 
     data class UpdateNoteArgs(val id:Long, val text:String? = null, val isDeleted: Boolean? = null, val tagIds: List<Long>? = null)
     @JavascriptInterface
-    fun updateNote(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+    fun updateNote(cbId:Long, args:String): Deferred<BeRespose<Int>> = viewModelScope.async(Dispatchers.Default) {
         val newAttrs = gson.fromJson(args, UpdateNoteArgs::class.java)
-        callFeCallbackForDto(
+        returnDtoToFrontend(
             cbId,
             dataManager.updateNote(
                 noteId = newAttrs.id,
@@ -89,16 +91,16 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
     }
 
     @JavascriptInterface
-    fun doBackup(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
-        callFeCallbackForDto(
+    fun doBackup(cbId:Long, args:String): Deferred<BeRespose<Backup>> = viewModelScope.async(Dispatchers.Default) {
+        returnDtoToFrontend(
             cbId,
             dataManager.doBackup()
         )
     }
 
     @JavascriptInterface
-    fun listAvailableBackups(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
-        callFeCallbackForDto(
+    fun listAvailableBackups(cbId:Long, args:String): Deferred<BeRespose<List<Backup>>> = viewModelScope.async(Dispatchers.Default) {
+        returnDtoToFrontend(
             cbId,
             dataManager.listAvailableBackups()
         )
@@ -106,9 +108,9 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
 
     data class RestoreFromBackupArgs(val backupName:String)
     @JavascriptInterface
-    fun restoreFromBackup(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+    fun restoreFromBackup(cbId:Long, args:String): Deferred<BeRespose<String>> = viewModelScope.async(Dispatchers.Default) {
         val argsDto = gson.fromJson(args, RestoreFromBackupArgs::class.java)
-        callFeCallbackForDto(
+        returnDtoToFrontend(
             cbId,
             dataManager.restoreFromBackup(backupName = argsDto.backupName)
         )
@@ -116,9 +118,9 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
 
     data class DeleteBackupArgs(val backupName:String)
     @JavascriptInterface
-    fun deleteBackup(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+    fun deleteBackup(cbId:Long, args:String): Deferred<BeRespose<List<Backup>>> = viewModelScope.async(Dispatchers.Default) {
         val argsDto = gson.fromJson(args, DeleteBackupArgs::class.java)
-        callFeCallbackForDto(
+        returnDtoToFrontend(
             cbId,
             dataManager.deleteBackup(backupName = argsDto.backupName)
         )
@@ -126,18 +128,18 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
 
     data class ShareBackupArgs(val backupName:String)
     @JavascriptInterface
-    fun shareBackup(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
+    fun shareBackup(cbId:Long, args:String): Deferred<BeRespose<Unit>> = viewModelScope.async(Dispatchers.Default) {
         val argsDto = gson.fromJson(args, ShareBackupArgs::class.java)
-        callFeCallbackForDto(
+        returnDtoToFrontend(
             cbId,
             dataManager.shareBackup(backupName = argsDto.backupName)
         )
     }
 
     @JavascriptInterface
-    fun startHttpServer(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
-        httpsServer = HttpsServer(applicationContext = appContext)
-        callFeCallbackForDto(
+    fun startHttpServer(cbId:Long, args:String = ""): Deferred<BeRespose<Boolean>> = viewModelScope.async(Dispatchers.Default) {
+        httpsServer = HttpsServer(applicationContext = appContext, javascriptInterface = self)
+        returnDtoToFrontend(
             cbId,
             BeRespose(data = true)
         )
