@@ -5,7 +5,7 @@ import android.webkit.WebResourceResponse
 import androidx.webkit.WebViewAssetLoader
 import java.io.ByteArrayInputStream
 
-class CustomAssetsPathHandler(appContext: Context, private val rootReactComponent: String) : WebViewAssetLoader.PathHandler {
+class CustomAssetsPathHandler(appContext: Context, private val rootReactComponent: String = "ViewSelector") : WebViewAssetLoader.PathHandler {
     private val delegate = WebViewAssetLoader.AssetsPathHandler(appContext)
     override fun handle(path: String): WebResourceResponse? {
         val result = delegate.handle(path)

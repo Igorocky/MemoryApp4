@@ -1,0 +1,7 @@
+-invoke be functions from Win
+-android service for http server
+
+-version handling in index.html
+-authentication to http server
+-ui for http server
+-stop server automatically in 1 hr with UI alert

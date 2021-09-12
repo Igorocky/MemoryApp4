@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter
 class DataManager(
     private val context: Context,
     private val dbName: String? = "tagged-notes-db",
-    private val shareFile: (Uri) -> Unit
+    private val shareFile: (Uri) -> Unit = {}
 ) {
     private val t = DB_V1
     private var repo = createNewRepo()

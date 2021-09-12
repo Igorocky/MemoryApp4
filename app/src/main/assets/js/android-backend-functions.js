@@ -46,6 +46,8 @@ const be = {
     deleteBackup: createSingleDtoArgBeFunction('deleteBackup'),
     shareBackup: createSingleDtoArgBeFunction('shareBackup'),
 
+    startHttpServer: createBeFunction('startHttpServer'),
+
     getSharedFileInfo: createBeFunction('getSharedFileInfo'),
     closeSharedFileReceiver: createBeFunction('closeSharedFileReceiver'),
     saveSharedFile: createSingleDtoArgBeFunction('saveSharedFile'),

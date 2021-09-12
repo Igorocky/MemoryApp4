@@ -10,7 +10,9 @@ import kotlinx.coroutines.launch
 
 class MainActivityViewModel: WebViewViewModel("ViewSelector") {
     @Volatile var shareFile: ((Uri) -> Unit)? = null
+    private lateinit var appContext: Context
     private lateinit var dataManager: DataManager
+    private var httpsServer: HttpsServer? = null
 
     override fun onCleared() {
         log.debug("Clearing")
@@ -19,6 +21,7 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
     }
 
     override fun getWebView(appContext: Context): WebView {
+        this.appContext = appContext
         dataManager = DataManager(context = appContext, shareFile = {uri -> shareFile?.invoke(uri)?:Unit})
         return getWebView(appContext, this)
     }
@@ -134,6 +137,15 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
         callFeCallbackForDto(
             cbId,
             dataManager.shareBackup(backupName = argsDto.backupName)
+        )
+    }
+
+    @JavascriptInterface
+    fun startHttpServer(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+        httpsServer = HttpsServer(applicationContext = appContext)
+        callFeCallbackForDto(
+            cbId,
+            BeRespose(data = true)
         )
     }
 }

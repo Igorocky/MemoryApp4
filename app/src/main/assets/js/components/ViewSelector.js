@@ -11,6 +11,7 @@ const PAGE_1_VIEW = 'page1'
 const PAGE_2_VIEW = 'page2'
 const TAGS_VIEW = 'tags'
 const BACKUPS_VIEW = 'backups'
+const HTTP_SERVER_VIEW = 'httpserver'
 const SEARCH_NOTES_VIEW = 'searchNotes'
 const ADD_NOTES_VIEW = 'addNotes'
 const VIEWS = {}
@@ -27,6 +28,7 @@ addView({name: DEBUG_VIEW, component: DebugPage})
 addView({name: PAGE_1_VIEW, component: Page1})
 addView({name: PAGE_2_VIEW, component: Page2})
 addView({name: BACKUPS_VIEW, component: BackupsView})
+addView({name: HTTP_SERVER_VIEW, component: HttpServerView})
 addView({name: TAGS_VIEW, component: TagsView})
 addView({name: SEARCH_NOTES_VIEW, component: SearchNotesView})
 addView({name: ADD_NOTES_VIEW, component: AddNotesView})
@@ -76,6 +78,7 @@ const ViewSelector = ({}) => {
         const additionalButtons = [
             [
                 {key:BACKUPS_VIEW, viewName:BACKUPS_VIEW, iconName:"backup_table"},
+                {key:HTTP_SERVER_VIEW, viewName:HTTP_SERVER_VIEW, iconName:"devices"},
                 {key:'11', viewName:PAGE_1_VIEW, symbol:"1"},
                 {key:'22', viewName:PAGE_2_VIEW, symbol:"2"},
             ]

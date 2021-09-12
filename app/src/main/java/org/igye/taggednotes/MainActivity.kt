@@ -11,6 +11,7 @@ class MainActivity : WebViewActivity<MainActivityViewModel>() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel.shareFile = { shareFile(it) }
+//        viewModel.startHttpServer(-1)
     }
 
     override fun onDestroy() {
