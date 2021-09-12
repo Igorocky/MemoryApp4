@@ -136,6 +136,10 @@ async function deleteBackup({backupName}) {
     return await listAvailableBackups()
 }
 
+async function shareBackup({backupName}) {
+    return okResponse({})
+}
+
 function createBeFunctions(...funcs) {
     return funcs.reduce((a,e) => ({...a,[e.name]:promisifyBeFunc(e)}), {})
 }
@@ -195,6 +199,7 @@ const be = {
     restoreFromBackup,
     listAvailableBackups: promisifyBeFunc(listAvailableBackups),
     deleteBackup: promisifyBeFunc(deleteBackup),
+    shareBackup: promisifyBeFunc(shareBackup),
 
     getSharedFileInfo: promisifyBeFunc(getSharedFileInfo, 1000),
     saveSharedFile: promisifyBeFunc(saveSharedFile, 1000),

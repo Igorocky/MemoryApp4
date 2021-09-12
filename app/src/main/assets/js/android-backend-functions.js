@@ -44,6 +44,7 @@ const be = {
     listAvailableBackups: createBeFunction('listAvailableBackups'),
     restoreFromBackup: createSingleDtoArgBeFunction('restoreFromBackup'),
     deleteBackup: createSingleDtoArgBeFunction('deleteBackup'),
+    shareBackup: createSingleDtoArgBeFunction('shareBackup'),
 
     getSharedFileInfo: createBeFunction('getSharedFileInfo'),
     closeSharedFileReceiver: createBeFunction('closeSharedFileReceiver'),

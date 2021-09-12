@@ -2,6 +2,8 @@ package org.igye.taggednotes
 
 import android.content.Context
 import android.database.sqlite.SQLiteStatement
+import android.net.Uri
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.igye.taggednotes.Utils.isNotEmpty
@@ -12,7 +14,11 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 
-class DataManager(private val context: Context, private val dbName: String? = "tagged-notes-db") {
+class DataManager(
+    private val context: Context,
+    private val dbName: String? = "tagged-notes-db",
+    private val shareFile: (Uri) -> Unit
+) {
     private val t = DB_V1
     private var repo = createNewRepo()
     fun getRepo() = repo
@@ -279,6 +285,16 @@ class DataManager(private val context: Context, private val dbName: String? = "t
     suspend fun deleteBackup(backupName:String): BeRespose<List<Backup>> = withContext(Dispatchers.IO) {
         File(backupDir, backupName).delete()
         listAvailableBackups()
+    }
+
+    suspend fun shareBackup(backupName:String): BeRespose<Unit> = withContext(Dispatchers.IO) {
+        val fileUri: Uri = FileProvider.getUriForFile(
+            context,
+            "org.igye.taggednotes.fileprovider",
+            File(backupDir, backupName)
+        )
+        shareFile(fileUri)
+        BeRespose(data = Unit)
     }
 
     fun close() = repo.close()

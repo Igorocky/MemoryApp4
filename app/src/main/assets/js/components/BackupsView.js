@@ -33,6 +33,11 @@ const BackupsView = ({query,openView,setPageTitle}) => {
                                     ? iconButton({iconName:'ios_share', onClick: () => restoreFromBackup({backup})})
                                     : null
                             ),
+                            RE.td({},
+                                focusedBackup?.name === backup.name
+                                    ? iconButton({iconName:'share', onClick: () => be.shareBackup({backupName:backup.name})})
+                                    : null
+                            ),
                         )
                     )
                 )
