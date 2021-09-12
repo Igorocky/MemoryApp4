@@ -15,7 +15,7 @@ class CustomAssetsPathHandler(appContext: Context, private val rootReactComponen
                 result.encoding,
                 ByteArrayInputStream(
                     String(result.data.readBytes(), Charsets.UTF_8)
-                        .replaceFirst("js/mock-backend-functions.js", "js/android-backend-functions.js")
+                        .replaceFirst("js/testui-fe-be-bridge.js", "js/android-fe-be-bridge.js")
                         .replaceFirst("const ROOT_REACT_COMPONENT = null", "const ROOT_REACT_COMPONENT = $rootReactComponent")
                         .toByteArray()
                 )

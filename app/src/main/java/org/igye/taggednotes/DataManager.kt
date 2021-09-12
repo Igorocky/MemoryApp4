@@ -299,10 +299,6 @@ class DataManager(
 
     fun close() = repo.close()
 
-    suspend fun debug() {
-        doBackup()
-    }
-
     private val backupDir = Utils.getBackupsDir(context)
 
     private fun createNewRepo() = Repository(context, dbName)

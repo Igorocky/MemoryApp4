@@ -23,12 +23,12 @@ class SharedFileReceiverViewModel: WebViewViewModel("SharedFileReceiver") {
     }
 
     @JavascriptInterface
-    fun closeSharedFileReceiver(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+    fun closeSharedFileReceiver(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
         onClose()
     }
 
     @JavascriptInterface
-    fun getSharedFileInfo(cbId:Int) = viewModelScope.launch(Dispatchers.IO) {
+    fun getSharedFileInfo(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.IO) {
         val fileName = getFileName(sharedFileUri)
         callFeCallbackForDto(cbId, BeRespose(data = mapOf(
             "uri" to sharedFileUri,

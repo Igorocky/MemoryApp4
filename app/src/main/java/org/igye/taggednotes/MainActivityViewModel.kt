@@ -26,12 +26,6 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
         return getWebView(appContext, this)
     }
 
-    @JavascriptInterface
-    fun debug(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
-        dataManager.debug()
-        callFeCallback(cbId,null)
-    }
-
     data class SaveNewTagArgs(val name:String)
     @JavascriptInterface
     fun saveNewTag(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
@@ -40,7 +34,7 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
     }
 
     @JavascriptInterface
-    fun getAllTags(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+    fun getAllTags(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
         callFeCallbackForDto(cbId,dataManager.getTags())
     }
 
@@ -95,7 +89,7 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
     }
 
     @JavascriptInterface
-    fun doBackup(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+    fun doBackup(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
         callFeCallbackForDto(
             cbId,
             dataManager.doBackup()
@@ -103,7 +97,7 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
     }
 
     @JavascriptInterface
-    fun listAvailableBackups(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+    fun listAvailableBackups(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
         callFeCallbackForDto(
             cbId,
             dataManager.listAvailableBackups()
@@ -141,7 +135,7 @@ class MainActivityViewModel: WebViewViewModel("ViewSelector") {
     }
 
     @JavascriptInterface
-    fun startHttpServer(cbId:Int) = viewModelScope.launch(Dispatchers.Default) {
+    fun startHttpServer(cbId:Int, args:String) = viewModelScope.launch(Dispatchers.Default) {
         httpsServer = HttpsServer(applicationContext = appContext)
         callFeCallbackForDto(
             cbId,
