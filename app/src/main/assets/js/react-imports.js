@@ -319,6 +319,7 @@ function useMessagePopup() {
     const [okBtnText, setOkBtnText] = useState(null)
     const [onOk, setOnOk] = useState(null)
     const [showProgress, setShowProgress] = useState(false)
+    const [additionalActionsRenderer, setAdditionalActionsRenderer] = useState(null)
 
     function renderOkButton() {
         if (okBtnText) {
@@ -337,6 +338,7 @@ function useMessagePopup() {
 
     function drawActionButtons() {
         return RE.Fragment({},
+            additionalActionsRenderer?.(),
             renderCancelButton(),
             renderOkButton()
         )
@@ -366,10 +368,11 @@ function useMessagePopup() {
                 resolve(true)
             })
             setShowProgress(false)
+            setAdditionalActionsRenderer(null)
         })
     }
 
-    async function showMessage({text, okBtnText = 'ok'}) {
+    async function showMessage({text, okBtnText = 'ok', additionalActionsRenderer = null}) {
         return new Promise(resolve => {
             setDialogOpened(true)
             setText(text)
@@ -381,6 +384,7 @@ function useMessagePopup() {
                 resolve(true)
             })
             setShowProgress(false)
+            setAdditionalActionsRenderer(() => additionalActionsRenderer)
         })
     }
 
@@ -392,6 +396,7 @@ function useMessagePopup() {
         setOkBtnText(okBtnText)
         setOnOk(() => () => null)
         setShowProgress(true)
+        setAdditionalActionsRenderer(null)
         return () => setDialogOpened(false)
     }
 

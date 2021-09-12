@@ -84,7 +84,11 @@ const BackupsView = ({query,openView,setPageTitle}) => {
             const res = await be.doBackup()
             closeProgressWindow()
             if (!res.err) {
-                await showMessage({text: `A backup was created.`})
+                const newBackupName = res.data.name
+                await showMessage({
+                    text: `A backup was created '${newBackupName}'`,
+                    additionalActionsRenderer: () => iconButton({iconName:'share', onClick: () => be.shareBackup({backupName:newBackupName})})
+                })
                 setAllBackups(prev => [res.data, ...prev])
                 setFocusedBackup(null)
             } else {
