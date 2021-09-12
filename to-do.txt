@@ -1,7 +1,14 @@
--invoke be functions from Win
--android service for http server
+-single jsInterface function
+-save user settings to a file
+-ui for http server (show keystore, passwords for the keystore, start/stop button)
+-authentication for the http server
+-deploy procedure
+-understand how ktor works, treads
+-read and implement: android service for http server
+-read: https://developer.android.com/guide/webapps/webview
 
+-stop the http server automatically in 1 hr of inactivity with UI alert
 -version handling in index.html
--authentication to http server
--ui for http server
--stop server automatically in 1 hr with UI alert
+-more filters
+-navigation from tags to notes search
+-show only relevant tags in the search filter

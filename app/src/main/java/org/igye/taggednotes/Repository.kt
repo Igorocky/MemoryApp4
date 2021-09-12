@@ -107,7 +107,6 @@ class Repository(context: Context, dbName: String?) : SQLiteOpenHelper(context, 
                 stmt.bindLong(2, tagId)
                 return stmt.executeInsert()
             }
-
         }
         deleteNoteToTagStmt = object : DeleteNoteToTagStmt {
             val stmt = db!!.compileStatement("delete from ${t.noteToTag} where ${t.noteToTag.noteId} = ?")
