@@ -3,11 +3,9 @@ package org.igye.taggednotes
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import java.io.File
 import java.io.FileInputStream
@@ -23,32 +21,29 @@ class SharedFileReceiverViewModel: WebViewViewModel("SharedFileReceiver") {
         return getWebView(appContext, this)
     }
 
-    @JavascriptInterface
-    fun closeSharedFileReceiver(cbId:Int, args:String): Deferred<String> = viewModelScope.async(Dispatchers.Default) {
+    @BeMethod
+    fun closeSharedFileReceiver(): Deferred<BeRespose<Boolean>> = viewModelScope.async {
         onClose()
-        ""
+        BeRespose(data = true)
     }
 
-    @JavascriptInterface
-    fun getSharedFileInfo(cbId:Long, args:String): Deferred<BeRespose<Map<String, Any>>> = viewModelScope.async(Dispatchers.IO) {
+    @BeMethod
+    fun getSharedFileInfo(): Deferred<BeRespose<Map<String, Any>>> = viewModelScope.async {
         val fileName = getFileName(sharedFileUri)
-        returnDtoToFrontend(cbId, BeRespose(data = mapOf(
+        BeRespose(data = mapOf(
             "uri" to sharedFileUri,
             "name" to fileName,
             "type" to getFileType(fileName),
-        )))
+        ))
     }
 
     data class SaveSharedFileArgs(val fileUri: String, val fileType: SharedFileType, val fileName: String)
-    @JavascriptInterface
-    fun saveSharedFile(cbId:Long, args:String): Deferred<BeRespose<Any>> = viewModelScope.async(Dispatchers.IO) {
-        val fileInfo = gson.fromJson(args, SaveSharedFileArgs::class.java)
-        if (fileInfo.fileUri != sharedFileUri) {
-            returnDtoToFrontend(cbId, BeRespose<Any>(err = BeErr(code = 1, msg = "fileInfo.uri != sharedFileUri")))
+    @BeMethod
+    fun saveSharedFile(args:SaveSharedFileArgs): Deferred<BeRespose<Any>> = viewModelScope.async {
+        if (args.fileUri != sharedFileUri) {
+            BeRespose<Any>(err = BeErr(code = 1, msg = "fileInfo.uri != sharedFileUri"))
         } else {
-            returnDtoToFrontend(cbId, BeRespose(
-                data = copyFile(fileUri = fileInfo.fileUri, fileName = fileInfo.fileName, fileType = fileInfo.fileType)
-            ))
+            BeRespose(data = copyFile(fileUri = args.fileUri, fileName = args.fileName, fileType = args.fileType))
         }
     }
 

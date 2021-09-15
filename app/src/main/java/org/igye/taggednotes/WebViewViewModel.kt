@@ -13,6 +13,7 @@ import com.google.gson.Gson
 
 abstract class WebViewViewModel(private val rootReactComponent: String): ViewModel() {
     protected var webView: WebView? = null
+    private lateinit var beFuncs: Map<String, (String) -> String>
     protected val gson = Gson()
     protected val log = LoggerImpl(this.javaClass.simpleName)
 
@@ -50,25 +51,32 @@ abstract class WebViewViewModel(private val rootReactComponent: String): ViewMod
                 .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(appContext))
                 .build()
             webView.webViewClient = LocalContentWebViewClient(assetLoader)
-            webView.addJavascriptInterface(javascriptInterface, "BE")
+            beFuncs = Utils.createMethodMap(javascriptInterface)
+            webView.addJavascriptInterface(this, "BE")
             webView.loadUrl("https://appassets.androidplatform.net/assets/index.html")
             this.webView = webView
         }
         return this.webView!!
     }
 
-    private fun callFeCallback(callBackId: Long, result: Any?) {
-        webView!!.post {
-            webView!!.loadUrl("javascript:callFeCallback($callBackId, $result)")
+    @JavascriptInterface
+    fun invokeBeMethod(cbId:Long, methodName:String, args:String) {
+        if (!beFuncs.containsKey(methodName)) {
+            returnDtoToFrontend(cbId, BeRespose<Any>(err = BeErr(code = 1000, msg = "backend method '$methodName' was not found")))
+        } else {
+            callFeCallback(cbId, beFuncs[methodName]!!.invoke(args))
         }
     }
 
-    protected fun <T> returnDtoToFrontend(callBackId: Long, dto: BeRespose<T>): BeRespose<T> {
-        if (callBackId >= 0) {
-            val dtoStr = gson.toJson(dto)
-            callFeCallback(callBackId, dtoStr)
+    private fun callFeCallback(callBackId: Long, dtoStr: String) {
+        webView!!.post {
+            webView!!.loadUrl("javascript:callFeCallback($callBackId, $dtoStr)")
         }
-        return dto
+    }
+
+    private fun returnDtoToFrontend(callBackId: Long, dto: Any) {
+        val dtoStr = gson.toJson(dto)
+        callFeCallback(callBackId, dtoStr)
     }
 
 }

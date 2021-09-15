@@ -1,8 +1,6 @@
 package org.igye.taggednotes
 
 import android.content.Context
-import android.webkit.JavascriptInterface
-import com.google.gson.Gson
 import io.ktor.application.*
 import io.ktor.http.*
 import io.ktor.network.tls.certificates.*
@@ -11,16 +9,14 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.igye.taggednotes.Utils.createMethodMap
 import java.io.File
 import java.security.KeyStore
 
 class HttpsServer(applicationContext: Context, javascriptInterface: Any) {
     private val logger = LoggerImpl(">>>>>")
-    protected val gson = Gson()
     private val keyStoreFile = File(Utils.getKeystoreDir(applicationContext), "ktor-keystore.bks")
     private val keyAlias = "key0"
     private val privateKeyPassword = ""
@@ -77,21 +73,6 @@ class HttpsServer(applicationContext: Context, javascriptInterface: Any) {
     }
 
     private val httpsServer = embeddedServer(Netty, environment).start(wait = false)
-
-    private fun createMethodMap(jsInterface: Any): Map<String, (String) -> String> {
-        val resultMap = HashMap<String, (String) -> String>()
-        jsInterface.javaClass.methods.asSequence()
-            .filter { it.getAnnotation(JavascriptInterface::class.java) != null }
-            .forEach { method ->
-                resultMap.put(method.name) { argStr ->
-                    runBlocking(Dispatchers.Default) {
-                        val deffered = method.invoke(jsInterface, -1L, argStr) as Deferred<*>
-                        gson.toJson(deffered.await())
-                    }
-                }
-            }
-        return resultMap
-    }
 
     private fun generateCertificate() {
         generateCertificate(

@@ -21,7 +21,7 @@ function createFeBeBridgeForAndroid() {
 
     function createBeFunction(functionName) {
         return dto => new Promise((resolve, reject) => {
-            BE[functionName](createFeCallback(resolve), JSON.stringify(dto??{}))
+            BE.invokeBeMethod(createFeCallback(resolve), functionName, JSON.stringify(dto??{}))
         })
     }
 
