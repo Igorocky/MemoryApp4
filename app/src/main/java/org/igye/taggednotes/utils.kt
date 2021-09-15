@@ -2,9 +2,10 @@ package org.igye.taggednotes
 
 import android.content.Context
 import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
 import java.io.File
 
 object Utils {
@@ -15,26 +16,28 @@ object Utils {
     fun getBackupsDir(context: Context): File = createDirIfNotExists(File(context.filesDir, "backup"))
     fun getKeystoreDir(context: Context): File = createDirIfNotExists(File(context.filesDir, "keystore"))
 
-    fun createMethodMap(jsInterface: Any): Map<String, (String) -> String> {
-        val resultMap = HashMap<String, (String) -> String>()
-        jsInterface.javaClass.methods.asSequence()
-            .filter { it.getAnnotation(BeMethod::class.java) != null }
-            .forEach { method ->
-                resultMap.put(method.name) { argStr ->
-                    runBlocking(Dispatchers.Default) {
-                        var deffered: Deferred<*>? = null
-                        val parameterTypes = method.parameterTypes
-                        if (parameterTypes.isNotEmpty()) {
-                            val argsDto = gson.fromJson(argStr, parameterTypes[0])
-                            deffered = method.invoke(jsInterface, argsDto) as Deferred<*>
-                        } else {
-                            deffered = method.invoke(jsInterface) as Deferred<*>
+    fun createMethodMap(jsInterfaces: List<Any>): Map<String, (defaultDispatcher:CoroutineDispatcher, String) -> Deferred<String>> {
+        val resultMap = HashMap<String, (defaultDispatched:CoroutineDispatcher, String) -> Deferred<String>>()
+        jsInterfaces.forEach{ jsInterface ->
+            jsInterface.javaClass.methods.asSequence()
+                .filter { it.getAnnotation(BeMethod::class.java) != null }
+                .forEach { method ->
+                    resultMap.put(method.name) { defaultDispatcher,argStr ->
+                        CoroutineScope(defaultDispatcher).async {
+                            var deferred: Deferred<*>? = null
+                            val parameterTypes = method.parameterTypes
+                            if (parameterTypes.isNotEmpty()) {
+                                val argsDto = gson.fromJson(argStr, parameterTypes[0])
+                                deferred = method.invoke(jsInterface, argsDto) as Deferred<*>
+                            } else {
+                                deferred = method.invoke(jsInterface) as Deferred<*>
+                            }
+                            gson.toJson(deferred.await())
                         }
-                        gson.toJson(deffered.await())
                     }
                 }
-            }
-        return resultMap
+        }
+        return resultMap.toMap()
     }
 
     private fun createDirIfNotExists(dir: File): File {

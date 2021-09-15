@@ -9,20 +9,21 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.igye.taggednotes.Utils.createMethodMap
 import java.io.File
 import java.security.KeyStore
 
-class HttpsServer(applicationContext: Context, javascriptInterface: Any) {
+class HttpsServer(applicationContext: Context, javascriptInterface: List<Any>, private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default) {
     private val logger = LoggerImpl(">>>>>")
     private val keyStoreFile = File(Utils.getKeystoreDir(applicationContext), "ktor-keystore.bks")
     private val keyAlias = "key0"
     private val privateKeyPassword = ""
     private val keyStorePassword = ""
 
-    private val beFuncs = createMethodMap(javascriptInterface)
+    private val beMethods = createMethodMap(javascriptInterface)
 
     private val assetsPathHandler: CustomAssetsPathHandler = CustomAssetsPathHandler(
         appContext = applicationContext,
@@ -62,9 +63,9 @@ class HttpsServer(applicationContext: Context, javascriptInterface: Any) {
                 post("/be/{funcName}") {
                     val funcName = call.parameters["funcName"]
                     logger.debug("func name = $funcName")
-                    withContext(Dispatchers.Default) {
+                    withContext(defaultDispatcher) {
                         call.respondText(contentType = ContentType.Application.Json, status = HttpStatusCode.OK) {
-                            beFuncs.get(funcName)?.invoke(call.receiveText())?:"backend method '$funcName' was not found"
+                            beMethods.get(funcName)?.invoke(defaultDispatcher, call.receiveText())?.await()?:"backend method '$funcName' was not found"
                         }
                     }
                 }

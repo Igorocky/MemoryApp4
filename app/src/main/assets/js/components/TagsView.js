@@ -9,7 +9,7 @@ const TagsView = ({query,openView,setPageTitle}) => {
     const {renderMessagePopup, showMessage, confirmAction} = useMessagePopup()
 
     useEffect(async () => {
-        const {data:allTags} = await be.getAllTags()
+        const {data:allTags} = await be.getAllTags({})
         setAllTags(allTags)
     }, [])
 

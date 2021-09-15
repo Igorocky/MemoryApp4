@@ -15,7 +15,7 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
     const [editNoteMode, setEditNoteMode] = useState(false)
 
     useEffect(async () => {
-        const {data:allTags} = await be.getAllTags()
+        const {data:allTags} = await be.getAllTags({})
         setAllTags(allTags)
     }, [])
 
@@ -27,12 +27,18 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
 
     async function doSearch() {
         setEditFilterMode(false)
+        setFocusedNote(null)
         let notesResp = await be.getNotes({
             tagIdsToInclude: tagsToInclude.map(t => t.id),
             tagIdsToExclude: tagsToExclude.map(t => t.id),
             searchInDeleted
         })
-        setFoundNotes(notesResp.data)
+        if (notesResp.err) {
+            await showError(notesResp.err)
+            editFilter()
+        } else {
+            setFoundNotes(notesResp.data.items)
+        }
     }
 
     function editFilter() {

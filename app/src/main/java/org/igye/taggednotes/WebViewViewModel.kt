@@ -7,13 +7,18 @@ import android.view.ViewGroup
 import android.webkit.*
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
 import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-abstract class WebViewViewModel(private val rootReactComponent: String): ViewModel() {
+abstract class WebViewViewModel(private val rootReactComponent: String, private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default): ViewModel() {
     protected var webView: WebView? = null
-    private lateinit var beFuncs: Map<String, (String) -> String>
+    private lateinit var beMethods: Map<String, (defaultDispatcher: CoroutineDispatcher, String) -> Deferred<String>>
     protected val gson = Gson()
     protected val log = LoggerImpl(this.javaClass.simpleName)
 
@@ -25,8 +30,7 @@ abstract class WebViewViewModel(private val rootReactComponent: String): ViewMod
         }
     }
 
-    @SuppressLint("JavascriptInterface")
-    protected fun getWebView(appContext: Context, javascriptInterface: Any): WebView {
+    protected fun getWebView(appContext: Context, javascriptInterface: List<Any>): WebView {
         if (webView == null) {
             val webView = WebView(appContext)
             webView.settings.javaScriptEnabled = true
@@ -51,7 +55,7 @@ abstract class WebViewViewModel(private val rootReactComponent: String): ViewMod
                 .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(appContext))
                 .build()
             webView.webViewClient = LocalContentWebViewClient(assetLoader)
-            beFuncs = Utils.createMethodMap(javascriptInterface)
+            beMethods = Utils.createMethodMap(javascriptInterface)
             webView.addJavascriptInterface(this, "BE")
             webView.loadUrl("https://appassets.androidplatform.net/assets/index.html")
             this.webView = webView
@@ -61,10 +65,12 @@ abstract class WebViewViewModel(private val rootReactComponent: String): ViewMod
 
     @JavascriptInterface
     fun invokeBeMethod(cbId:Long, methodName:String, args:String) {
-        if (!beFuncs.containsKey(methodName)) {
+        if (!beMethods.containsKey(methodName)) {
             returnDtoToFrontend(cbId, BeRespose<Any>(err = BeErr(code = 1000, msg = "backend method '$methodName' was not found")))
         } else {
-            callFeCallback(cbId, beFuncs[methodName]!!.invoke(args))
+            viewModelScope.launch(defaultDispatcher) {
+                callFeCallback(cbId, beMethods[methodName]!!.invoke(defaultDispatcher, args)!!.await())
+            }
         }
     }
 

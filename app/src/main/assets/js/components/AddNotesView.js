@@ -7,7 +7,7 @@ const AddNotesView = ({query,openView,setPageTitle}) => {
     const [allTagsMap, setAllTagsMap] = useState(null)
 
     useEffect(async () => {
-        const {data:allTags} = await be.getAllTags()
+        const {data:allTags} = await be.getAllTags({})
         setAllTags(allTags)
     }, [])
 

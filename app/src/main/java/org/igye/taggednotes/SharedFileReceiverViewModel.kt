@@ -18,7 +18,7 @@ class SharedFileReceiverViewModel: WebViewViewModel("SharedFileReceiver") {
 
     override fun getWebView(appContext: Context): WebView {
         this.appContext = appContext
-        return getWebView(appContext, this)
+        return getWebView(appContext, listOf(this))
     }
 
     @BeMethod

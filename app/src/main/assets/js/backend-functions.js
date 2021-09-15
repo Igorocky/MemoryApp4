@@ -14,7 +14,7 @@ const be = {
     saveSharedFile: createBeFunction('saveSharedFile'),
 
     saveNewTag: createBeFunction('saveNewTag'),
-    getAllTags: createBeFunction('getAllTags'),
+    getAllTags: createBeFunction('getTags'),
     updateTag: createBeFunction('updateTag'),
     deleteTag: createBeFunction('deleteTag'),
     saveNewNote: createBeFunction('saveNewNote'),

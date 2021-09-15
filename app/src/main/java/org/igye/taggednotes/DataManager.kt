@@ -4,8 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteStatement
 import android.net.Uri
 import androidx.core.content.FileProvider
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import org.igye.taggednotes.Utils.isNotEmpty
 import java.io.File
 import java.time.Instant
@@ -17,7 +16,8 @@ import java.time.format.DateTimeFormatter
 class DataManager(
     private val context: Context,
     private val dbName: String? = "tagged-notes-db",
-    private val shareFile: (Uri) -> Unit = {}
+    private val shareFile: (Uri) -> Unit = {},
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val t = DB_V1
     private var repo = createNewRepo()
@@ -49,8 +49,10 @@ class DataManager(
 
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX").withZone(ZoneId.from(ZoneOffset.UTC))
 
-    suspend fun saveNewTag(nameArg:String): BeRespose<Tag> = withContext(Dispatchers.IO) {
-        val name = nameArg.replace(" ", "")
+    data class SaveNewTagArgs(val name:String)
+    @BeMethod
+    fun saveNewTag(args:SaveNewTagArgs): Deferred<BeRespose<Tag>> = CoroutineScope(ioDispatcher).async {
+        val name = args.name.replace(" ", "")
         if (name.isBlank()) {
             BeRespose(err = BeErr(code = ERR_CREATE_TAG_NAME_EMPTY, msg = "Name of a new tag should not be empty."))
         } else {
@@ -72,8 +74,10 @@ class DataManager(
         }
     }
 
-    suspend fun updateTag(id:Long, nameArg:String): BeRespose<Int> = withContext(Dispatchers.IO) {
-        val name = nameArg.replace(" ", "")
+    data class UpdateTagArgs(val id:Long, val name: String)
+    @BeMethod
+    fun updateTag(args:UpdateTagArgs): Deferred<BeRespose<Int>> = CoroutineScope(ioDispatcher).async {
+        val name = args.name.replace(" ", "")
         if (name.isBlank()) {
             BeRespose(err = BeErr(code = ERR_UPDATE_TAG_NAME_EMPTY, msg = "Name of a tag must not be empty."))
         } else {
@@ -85,24 +89,28 @@ class DataManager(
                 },
                 errCode = ERR_UPDATE_TAG
             ) {
-                BeRespose(data = repo.updateTagStmt!!.exec(id=id,name=name))
+                BeRespose(data = repo.updateTagStmt!!.exec(id=args.id,name=name))
             }
         }
     }
 
-    suspend fun deleteTag(id:Long): BeRespose<Int> = withContext(Dispatchers.IO) {
+    data class DeleteTagArgs(val id:Long)
+    @BeMethod
+    fun deleteTag(args:DeleteTagArgs): Deferred<BeRespose<Int>> = CoroutineScope(ioDispatcher).async {
         repo.writableDatabase.doInTransaction(errCode = ERR_DELETE_TAG) {
-            BeRespose(data = repo.deleteTagStmt!!.exec(id))
+            BeRespose(data = repo.deleteTagStmt!!.exec(args.id))
         }
     }
 
-    suspend fun getTags(nameContains:String? = null): BeRespose<List<Tag>> = withContext(Dispatchers.IO) {
+    data class GetTagsArgs(val nameContains:String? = null)
+    @BeMethod
+    fun getTags(params:GetTagsArgs): Deferred<BeRespose<List<Tag>>> = CoroutineScope(Dispatchers.IO).async {
         val query = StringBuilder()
         val args = ArrayList<String>()
         query.append("select ${t.tags.id}, ${t.tags.createdAt}, ${t.tags.name} from ${t.tags}")
-        if (nameContains != null) {
+        if (params.nameContains != null) {
             query.append(" where lower(${t.tags.name}) like ?")
-            args.add("%${nameContains.lowercase()}%")
+            args.add("%${params.nameContains.lowercase()}%")
         }
         query.append(" order by ${t.tags.name}")
         repo.readableDatabase.doInTransaction(errCode = ERR_GET_TAGS) {
@@ -119,8 +127,10 @@ class DataManager(
         }
     }
 
-    suspend fun saveNewNote(textArg:String, tagIds: List<Long>): BeRespose<Note> = withContext(Dispatchers.IO) {
-        val text = textArg.replace(" ", "")
+    data class SaveNewNoteArgs(val text:String, val tagIds: List<Long>)
+    @BeMethod
+    fun saveNewNote(args:SaveNewNoteArgs): Deferred<BeRespose<Note>> = CoroutineScope(ioDispatcher).async {
+        val text = args.text.replace(" ", "")
         if (text.isBlank()) {
             BeRespose(err = BeErr(code = ERR_CREATE_NOTE_TEXT_EMPTY, msg = "Note's content should not be empty."))
         } else {
@@ -129,23 +139,20 @@ class DataManager(
                 if (newNote.id == -1L) {
                     BeRespose(err = BeErr(code = ERR_CREATE_NOTE_NEGATIVE_NEW_ID, "newId == -1"))
                 } else {
-                    tagIds.forEach { tagId ->
+                    args.tagIds.forEach { tagId ->
                         if (repo.insertNoteToTagStmt!!.exec(newNote.id,tagId) == -1L) {
                             return@transaction BeRespose<Note>(err = BeErr(code = ERR_CREATE_NOTE_TAG_REF_NEGATIVE_NEW_ID, "noteToTag.newId == -1"))
                         }
                     }
-                    BeRespose(data = newNote.copy(tagIds = tagIds))
+                    BeRespose(data = newNote.copy(tagIds = args.tagIds))
                 }
             }
         }
     }
 
-    suspend fun getNotes(
-        tagIdsToInclude:List<Long>? = null,
-        tagIdsToExclude:List<Long>? = null,
-        searchInDeleted:Boolean = false,
-        rowsMax:Long? = null,
-    ): BeRespose<ListOfItems<Note>> = withContext(Dispatchers.IO) {
+    data class GetNotesArgs(val tagIdsToInclude: List<Long>? = null, val tagIdsToExclude: List<Long>? = null, val searchInDeleted: Boolean = false, val rowsMax: Long = 100)
+    @BeMethod
+    fun getNotes(args:GetNotesArgs): Deferred<BeRespose<ListOfItems<Note>>> = CoroutineScope(ioDispatcher).async {
         val query = StringBuilder(
             """select n.${t.notes.id}, 
                 max(n.${t.notes.createdAt}) as ${t.notes.createdAt}, 
@@ -154,26 +161,26 @@ class DataManager(
                 (select group_concat(t.${t.noteToTag.tagId}) from ${t.noteToTag} t where t.${t.noteToTag.noteId} = n.${t.notes.id}) as tagIds"""
         )
         val searchFilters = ArrayList<String>()
-        if (isNotEmpty(tagIdsToInclude)) {
+        if (isNotEmpty(args.tagIdsToInclude)) {
             query.append(" from ${t.noteToTag} nt inner join ${t.notes} n on nt.${t.noteToTag.noteId} = n.${t.notes.id}")
-            searchFilters.add(" nt.${t.noteToTag.tagId} in (${tagIdsToInclude!!.joinToString(separator = ",")})")
+            searchFilters.add(" nt.${t.noteToTag.tagId} in (${args.tagIdsToInclude!!.joinToString(separator = ",")})")
         } else {
             query.append(" from ${t.notes} n")
         }
-        if (isNotEmpty(tagIdsToExclude)) {
+        if (isNotEmpty(args.tagIdsToExclude)) {
             query.append(" inner join ${t.noteToTag} nte on n.${t.notes.id} = nte.${t.noteToTag.noteId}")
         }
-        searchFilters.add("n.${t.notes.isDeleted} ${if(searchInDeleted)  "!= 0" else "= 0"}")
+        searchFilters.add("n.${t.notes.isDeleted} ${if(args.searchInDeleted)  "!= 0" else "= 0"}")
         query.append(searchFilters.joinToString(prefix = " where ", separator = " and "))
         query.append(" group by n.${t.notes.id}")
-        if (isNotEmpty(tagIdsToExclude)) {
+        if (isNotEmpty(args.tagIdsToExclude)) {
             fun excludeTagId(tagId:Long) = " group_concat(':'||nte.${t.noteToTag.tagId}||':') not like '%:'||${tagId}||':%'"
-            query.append(" having ${tagIdsToExclude?.asSequence()?.map { excludeTagId(it) }?.joinToString(separator = " and ")}")
+            query.append(" having ${args.tagIdsToExclude?.asSequence()?.map { excludeTagId(it) }?.joinToString(separator = " and ")}")
         }
         repo.readableDatabase.doInTransaction(errCode = ERR_GET_NOTES) {
             val (allRowsFetched, result) = repo.select(
                 query = query.toString(),
-                rowsMax = rowsMax,
+                rowsMax = args.rowsMax,
                 columnNames = listOf(t.notes.id, t.notes.createdAt, t.notes.isDeleted, t.notes.text, "tagIds"),
                 rowMapper = {
                     Note(
@@ -189,20 +196,17 @@ class DataManager(
         }
     }
 
-    suspend fun updateNote(
-        noteId:Long,
-        textArg:String? = null,
-        isDeleted: Boolean? = null,
-        tagIds: List<Long>? = null
-    ): BeRespose<Int> = withContext(Dispatchers.IO) {
-        if (textArg == null && isDeleted == null && tagIds == null) {
+    data class UpdateNoteArgs(val id:Long, val text:String? = null, val isDeleted: Boolean? = null, val tagIds: List<Long>? = null)
+    @BeMethod
+    fun updateNote(params:UpdateNoteArgs): Deferred<BeRespose<Int>> = CoroutineScope(ioDispatcher).async {
+        if (params.text == null && params.isDeleted == null && params.tagIds == null) {
             BeRespose(data = 0)
-        } else if (textArg != null && textArg.isBlank()) {
+        } else if (params.text != null && params.text.isBlank()) {
             BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_TEXT_EMPTY, msg = "Content of a note must not be empty."))
         } else {
             repo.writableDatabase.doInTransaction(errCode = ERR_UPDATE_NOTE) transaction@{
-                if (textArg != null || isDeleted != null) {
-                    val text = textArg?.trim()
+                if (params.text != null || params.isDeleted != null) {
+                    val text = params.text?.trim()
                     val query = StringBuilder("update ${t.notes} set ")
                     val updateParts = ArrayList<String>()
                     val args = ArrayList<(SQLiteStatement,Int) -> Unit>()
@@ -210,13 +214,13 @@ class DataManager(
                         updateParts.add("${t.notes.text} = ?")
                         args.add { stmt, idx -> stmt.bindString(idx, text) }
                     }
-                    if (isDeleted != null) {
+                    if (params.isDeleted != null) {
                         updateParts.add("${t.notes.isDeleted} = ?")
-                        args.add { stmt, idx -> stmt.bindLong(idx, if (isDeleted) 1 else 0) }
+                        args.add { stmt, idx -> stmt.bindLong(idx, if (params.isDeleted) 1 else 0) }
                     }
                     query.append(updateParts.joinToString(separator = ", "))
                     query.append(" where id = ?")
-                    args.add { stmt, idx -> stmt.bindLong(idx, noteId) }
+                    args.add { stmt, idx -> stmt.bindLong(idx, params.id) }
                     val updatedCnt = compileStatement(query.toString()).use { stmt: SQLiteStatement ->
                         args.forEachIndexed { index, binder -> binder(stmt,index+1) }
                         stmt.executeUpdateDelete()
@@ -225,10 +229,10 @@ class DataManager(
                         return@transaction BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_CNT_IS_NOT_ONE, msg = "updatedCnt != 1"))
                     }
                 }
-                if (tagIds != null) {
-                    repo.deleteNoteToTagStmt!!.exec(noteId)
-                    tagIds.forEach { tagId ->
-                        if (repo.insertNoteToTagStmt!!.exec(noteId,tagId) == -1L) {
+                if (params.tagIds != null) {
+                    repo.deleteNoteToTagStmt!!.exec(params.id)
+                    params.tagIds.forEach { tagId ->
+                        if (repo.insertNoteToTagStmt!!.exec(params.id,tagId) == -1L) {
                             return@transaction BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_TAG_REF_NEGATIVE_NEW_ID, "noteToTag.newId == -1"))
                         }
                     }
@@ -238,7 +242,8 @@ class DataManager(
         }
     }
 
-    suspend fun doBackup(): BeRespose<Backup> = withContext(Dispatchers.IO) {
+    @BeMethod
+    fun doBackup(): Deferred<BeRespose<Backup>> = CoroutineScope(ioDispatcher).async {
         val databasePath: File = context.getDatabasePath(dbName)
         val backupFileName = createBackupFileName(databasePath)
         val backupPath = File(backupDir, backupFileName)
@@ -254,7 +259,8 @@ class DataManager(
         }
     }
 
-    suspend fun listAvailableBackups(): BeRespose<List<Backup>> = withContext(Dispatchers.IO) {
+    @BeMethod
+    fun listAvailableBackups(): Deferred<BeRespose<List<Backup>>> = CoroutineScope(ioDispatcher).async {
         if (!backupDir.exists()) {
             BeRespose(data = emptyList())
         } else {
@@ -267,31 +273,37 @@ class DataManager(
         }
     }
 
-    suspend fun restoreFromBackup(backupName:String): BeRespose<String> = withContext(Dispatchers.IO) {
+    data class RestoreFromBackupArgs(val backupName:String)
+    @BeMethod
+    fun restoreFromBackup(args:RestoreFromBackupArgs): Deferred<BeRespose<String>> = CoroutineScope(ioDispatcher).async {
         val databasePath: File = context.getDatabasePath(dbName)
-        val backupPath = File(backupDir, backupName)
+        val backupPath = File(backupDir, args.backupName)
         try {
             repo.close()
             backupPath.copyTo(
                 target = databasePath,
                 overwrite = true
             )
-            BeRespose(data = "The database was restored from the backup $backupName")
+            BeRespose(data = "The database was restored from the backup $args.backupName")
         } finally {
             repo = createNewRepo()
         }
     }
 
-    suspend fun deleteBackup(backupName:String): BeRespose<List<Backup>> = withContext(Dispatchers.IO) {
-        File(backupDir, backupName).delete()
-        listAvailableBackups()
+    data class DeleteBackupArgs(val backupName:String)
+    @BeMethod
+    fun deleteBackup(args:DeleteBackupArgs): Deferred<BeRespose<List<Backup>>> = CoroutineScope(ioDispatcher).async {
+        File(backupDir, args.backupName).delete()
+        listAvailableBackups().await()
     }
 
-    suspend fun shareBackup(backupName:String): BeRespose<Unit> = withContext(Dispatchers.IO) {
+    data class ShareBackupArgs(val backupName:String)
+    @BeMethod
+    fun shareBackup(args:ShareBackupArgs): Deferred<BeRespose<Unit>> = CoroutineScope(ioDispatcher).async {
         val fileUri: Uri = FileProvider.getUriForFile(
             context,
             "org.igye.taggednotes.fileprovider",
-            File(backupDir, backupName)
+            File(backupDir, args.backupName)
         )
         shareFile(fileUri)
         BeRespose(data = Unit)

@@ -1,13 +1,12 @@
 package org.igye.taggednotes
 
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
-
+import org.igye.taggednotes.DataManager.*
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
-
-import org.junit.Assert.*
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -33,7 +32,7 @@ class DataManagerInstrumentedTest {
         val expectedTagName = "test-tag"
 
         //when
-        runBlocking { dm.saveNewTag(expectedTagName) }
+        runBlocking { dm.saveNewTag(SaveNewTagArgs(name = expectedTagName)).await() }
 
         //then
         val tags = dm.inTestGetAllTags()
@@ -46,10 +45,10 @@ class DataManagerInstrumentedTest {
         //given
         val dm = createInmemoryDataManager()
         val expectedTagName = "test-tag"
-        runBlocking { dm.saveNewTag(expectedTagName) }
+        runBlocking { dm.saveNewTag(SaveNewTagArgs(name = expectedTagName)) }
 
         //when
-        val res = runBlocking { dm.saveNewTag(expectedTagName) }
+        val res = runBlocking { dm.saveNewTag(SaveNewTagArgs(name = expectedTagName)).await() }
 
         //then
         assertEquals(102, res.err!!.code)
@@ -63,14 +62,14 @@ class DataManagerInstrumentedTest {
         assertEquals(0, dm.inTestGetAllTags().size)
         assertEquals(0, getAllNotes(dm).size)
         val expectedNoteText = "text-test-345683462354"
-        runBlocking { dm.saveNewTag("111") }
-        runBlocking { dm.saveNewTag("222") }
-        runBlocking { dm.saveNewTag("333") }
+        runBlocking { dm.saveNewTag(SaveNewTagArgs(name = "111")) }
+        runBlocking { dm.saveNewTag(SaveNewTagArgs("222")) }
+        runBlocking { dm.saveNewTag(SaveNewTagArgs("333")) }
         val allTags = dm.inTestGetAllTags()
         assertEquals(3, allTags.size)
 
         //when
-        runBlocking { dm.saveNewNote(textArg = expectedNoteText, tagIds = allTags.map { it.id }) }
+        runBlocking { dm.saveNewNote(SaveNewNoteArgs(text = expectedNoteText, tagIds = allTags.map { it.id })).await() }
 
         //then
         val allNotes = getAllNotes(dm)
@@ -85,16 +84,20 @@ class DataManagerInstrumentedTest {
         assertEquals(0, dm.inTestGetAllTags().size)
         assertEquals(0, getAllNotes(dm).size)
         val expectedNoteText = "text-test-345683462354"
-        runBlocking { dm.saveNewTag("111") }
-        runBlocking { dm.saveNewTag("222") }
-        runBlocking { dm.saveNewTag("333") }
+        runBlocking { dm.saveNewTag(SaveNewTagArgs("111")) }
+        runBlocking { dm.saveNewTag(SaveNewTagArgs("222")) }
+        runBlocking { dm.saveNewTag(SaveNewTagArgs("333")) }
         val allTags = dm.inTestGetAllTags()
         assertEquals(3, allTags.size)
         val nonExistentTagId = 100L
         assertTrue(nonExistentTagId != allTags[0].id && nonExistentTagId != allTags[1].id && nonExistentTagId != allTags[2].id)
 
         //when
-        val resp: BeRespose<Note> = runBlocking { dm.saveNewNote(textArg = expectedNoteText, tagIds = listOf(allTags[0].id, allTags[1].id, nonExistentTagId)) }
+        val resp: BeRespose<Note> = runBlocking { dm.saveNewNote(
+            SaveNewNoteArgs(
+            text = expectedNoteText, tagIds = listOf(allTags[0].id, allTags[1].id, nonExistentTagId)
+        )
+        ).await() }
 
         //then
         assertEquals(114,resp.err!!.code)
@@ -113,7 +116,12 @@ class DataManagerInstrumentedTest {
         val tag = dm.inTestSaveTag("111")
 
         //when
-        val resp: BeRespose<Note> = runBlocking { dm.saveNewNote(textArg = expectedNoteText, tagIds = listOf(tag.id,tag.id)) }
+        val resp: BeRespose<Note> = runBlocking { dm.saveNewNote(
+            SaveNewNoteArgs(
+                text = expectedNoteText,
+                tagIds = listOf(tag.id, tag.id)
+            )
+        ).await() }
 
         //then
         assertEquals(114,resp.err!!.code)
@@ -140,7 +148,7 @@ class DataManagerInstrumentedTest {
         dm.inTestGetAllTags().asSequence().map { it.id }.toSet().also { it.contains(tag1Id) }.also { it.contains(tag2Id) }
 
         //when:do backup
-        val backup = runBlocking { dm.doBackup() }.data!!
+        val backup = runBlocking { dm.doBackup().await() }.data!!
         //then
         dm.inTestGetAllTags().asSequence().map { it.id }.toSet().also { it.contains(tag1Id) }.also { it.contains(tag2Id) }
 
@@ -154,7 +162,7 @@ class DataManagerInstrumentedTest {
             .also { it.contains(tag3Id) }
 
         //when: restore data from the backup
-        runBlocking { dm.restoreFromBackup(backup.name) }
+        runBlocking { dm.restoreFromBackup(RestoreFromBackupArgs(backup.name)).await() }
         //then
         dm.inTestGetAllTags().asSequence().map { it.id }.toSet()
             .also { it.contains(tag1Id) }
@@ -171,7 +179,7 @@ class DataManagerInstrumentedTest {
         val tag3Id = dm.inTestSaveTag("tag3-ghi").id
 
         //when
-        val allTags = runBlocking { dm.getTags() }.data!!
+        val allTags = runBlocking { dm.getTags(GetTagsArgs()).await() }.data!!
 
         //then
         assertEquals(3, allTags.size)
@@ -191,7 +199,7 @@ class DataManagerInstrumentedTest {
         val tag3Id = dm.inTestSaveTag("tag3-ghi").id
 
         //when
-        val allTags = runBlocking { dm.getTags(nameContains = "De") }.data!!
+        val allTags = runBlocking { dm.getTags(GetTagsArgs(nameContains = "De")).await() }.data!!
 
         //then
         assertEquals(1, allTags.size)
@@ -207,11 +215,11 @@ class DataManagerInstrumentedTest {
         val tag3Id = dm.inTestSaveTag("tag3").id
         val note1TextExpected = "note1"
         val note2TextExpected = "note2"
-        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
-        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note2TextExpected, listOf(tag2Id, tag3Id))).await() }.data!!.id
 
         //when
-        val notesResp = runBlocking { dm.getNotes() }
+        val notesResp = runBlocking { dm.getNotes(GetNotesArgs()).await() }
 
         //then
         val notes = notesResp.data!!.items
@@ -238,12 +246,12 @@ class DataManagerInstrumentedTest {
         val note1TextExpected = "note1"
         val note2TextExpected = "note2"
         val note3TextExpected = "note3"
-        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
-        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
-        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note2TextExpected, listOf(tag2Id, tag3Id))).await() }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).await() }.data!!.id
 
         //when
-        val notesResp = runBlocking { dm.getNotes(tagIdsToInclude = listOf(tag3Id)) }
+        val notesResp = runBlocking { dm.getNotes(GetNotesArgs(tagIdsToInclude = listOf(tag3Id))).await() }
 
         //then
         val notes = notesResp.data!!.items
@@ -270,12 +278,12 @@ class DataManagerInstrumentedTest {
         val note1TextExpected = "note1"
         val note2TextExpected = "note2"
         val note3TextExpected = "note3"
-        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
-        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
-        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note2TextExpected, listOf(tag2Id, tag3Id))).await() }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).await() }.data!!.id
 
         //when
-        val notesResp = runBlocking { dm.getNotes(tagIdsToExclude = listOf(tag1Id,tag4Id)) }
+        val notesResp = runBlocking { dm.getNotes(GetNotesArgs(tagIdsToExclude = listOf(tag1Id,tag4Id))).await() }
 
         //then
         val notes = notesResp.data!!.items
@@ -302,13 +310,13 @@ class DataManagerInstrumentedTest {
         val note2TextExpected = "note2"
         val note3TextExpected = "note3"
         val note4TextExpected = "note4"
-        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
-        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
-        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
-        val note4Id = runBlocking { dm.saveNewNote(note4TextExpected, listOf(tag4Id, tag5Id)) }.data!!.id
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note2TextExpected, listOf(tag2Id, tag3Id))).await() }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).await() }.data!!.id
+        val note4Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note4TextExpected, listOf(tag4Id, tag5Id))).await() }.data!!.id
 
         //when
-        val notesResp = runBlocking { dm.getNotes(tagIdsToInclude = listOf(tag3Id), tagIdsToExclude = listOf(tag2Id)) }
+        val notesResp = runBlocking { dm.getNotes(GetNotesArgs(tagIdsToInclude = listOf(tag3Id), tagIdsToExclude = listOf(tag2Id))).await() }
 
         //then
         val notes = notesResp.data!!.items
@@ -327,14 +335,14 @@ class DataManagerInstrumentedTest {
         //given
         val dm = createInmemoryDataManager()
         val tag1Id = dm.inTestSaveTag("tag1").id
-        runBlocking { dm.saveNewNote("note1", listOf(tag1Id)) }
-        runBlocking { dm.saveNewNote("note1", listOf(tag1Id)) }
-        runBlocking { dm.saveNewNote("note1", listOf(tag1Id)) }
-        runBlocking { dm.saveNewNote("note1", listOf(tag1Id)) }
-        runBlocking { dm.saveNewNote("note1", listOf(tag1Id)) }
+        runBlocking { dm.saveNewNote(SaveNewNoteArgs("note1", listOf(tag1Id))).await() }
+        runBlocking { dm.saveNewNote(SaveNewNoteArgs("note1", listOf(tag1Id))).await() }
+        runBlocking { dm.saveNewNote(SaveNewNoteArgs("note1", listOf(tag1Id))).await() }
+        runBlocking { dm.saveNewNote(SaveNewNoteArgs("note1", listOf(tag1Id))).await() }
+        runBlocking { dm.saveNewNote(SaveNewNoteArgs("note1", listOf(tag1Id))).await() }
 
         //when
-        val notesResp = runBlocking { dm.getNotes(rowsMax = 4) }
+        val notesResp = runBlocking { dm.getNotes(GetNotesArgs(rowsMax = 4)).await() }
 
         //then
         val notes = notesResp.data!!.items
@@ -353,16 +361,16 @@ class DataManagerInstrumentedTest {
         val note1TextExpected = "note1"
         val note2TextExpected = "note2-updated"
         val note3TextExpected = "note3"
-        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
-        val note2Id = runBlocking { dm.saveNewNote("note2", listOf(tag2Id, tag3Id)) }.data!!.id
-        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs("note2", listOf(tag2Id, tag3Id))).await() }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).await() }.data!!.id
 
         //when
-        val updRes = runBlocking { dm.updateNote(noteId = note2Id, textArg = note2TextExpected) }
+        val updRes = runBlocking { dm.updateNote(UpdateNoteArgs(id = note2Id, text = note2TextExpected)).await() }
 
         //then
         assertNull(updRes.err)
-        val notes = runBlocking { dm.getNotes() }.data!!.items
+        val notes = runBlocking { dm.getNotes(GetNotesArgs()).await() }.data!!.items
         assertEquals(3, notes.size)
         val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
             map.also { it.put(note.id, note) }
@@ -392,16 +400,16 @@ class DataManagerInstrumentedTest {
         val note1TextExpected = "note1"
         val note2TextExpected = "note2"
         val note3TextExpected = "note3"
-        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
-        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
-        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note2TextExpected, listOf(tag2Id, tag3Id))).await() }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).await() }.data!!.id
 
         //when
-        val updRes = runBlocking { dm.updateNote(noteId = note2Id, tagIds = listOf(tag2Id, tag4Id)) }
+        val updRes = runBlocking { dm.updateNote(UpdateNoteArgs(id = note2Id, tagIds = listOf(tag2Id, tag4Id))).await() }
 
         //then
         assertNull(updRes.err)
-        val notes = runBlocking { dm.getNotes() }.data!!.items
+        val notes = runBlocking { dm.getNotes(GetNotesArgs()).await() }.data!!.items
         assertEquals(3, notes.size)
         val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
             map.also { it.put(note.id, note) }
@@ -431,16 +439,16 @@ class DataManagerInstrumentedTest {
         val note1TextExpected = "note1"
         val note2TextExpected = "note2"
         val note3TextExpected = "note3"
-        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
-        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
-        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note2TextExpected, listOf(tag2Id, tag3Id))).await() }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).await() }.data!!.id
 
         //when
-        val updRes = runBlocking { dm.updateNote(noteId = note2Id, isDeleted = true) }
+        val updRes = runBlocking { dm.updateNote(UpdateNoteArgs(id = note2Id, isDeleted = true)).await() }
 
         //then
         assertNull(updRes.err)
-        val notes = runBlocking { dm.getNotes(searchInDeleted = true) }.data!!.items
+        val notes = runBlocking { dm.getNotes(GetNotesArgs(searchInDeleted = true)).await() }.data!!.items
         assertEquals(1, notes.size)
         val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
             map.also { it.put(note.id, note) }
@@ -462,16 +470,16 @@ class DataManagerInstrumentedTest {
         val note1TextExpected = "note1"
         val note2TextExpected = "note2-updated"
         val note3TextExpected = "note3"
-        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
-        val note2Id = runBlocking { dm.saveNewNote("note2", listOf(tag2Id, tag3Id)) }.data!!.id
-        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs("note2", listOf(tag2Id, tag3Id))).await() }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).await() }.data!!.id
 
         //when
-        val updRes = runBlocking { dm.updateNote(noteId = note2Id, textArg = note2TextExpected, isDeleted = true) }
+        val updRes = runBlocking { dm.updateNote(UpdateNoteArgs(id = note2Id, text = note2TextExpected, isDeleted = true)).await() }
 
         //then
         assertNull(updRes.err)
-        val notes = runBlocking { dm.getNotes(searchInDeleted = true) }.data!!.items
+        val notes = runBlocking { dm.getNotes(GetNotesArgs(searchInDeleted = true)).await() }.data!!.items
         assertEquals(1, notes.size)
         val note = notes[0]
         assertEquals(note2TextExpected, note?.text)
@@ -490,16 +498,16 @@ class DataManagerInstrumentedTest {
         val note1TextExpected = "note1"
         val note2TextExpected = "note2-updated"
         val note3TextExpected = "note3"
-        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
-        val note2Id = runBlocking { dm.saveNewNote("note2", listOf(tag2Id, tag3Id)) }.data!!.id
-        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs("note2", listOf(tag2Id, tag3Id))).await() }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).await() }.data!!.id
 
         //when
-        val updRes = runBlocking { dm.updateNote(noteId = note2Id, textArg = note2TextExpected, tagIds = listOf(tag2Id, tag4Id)) }
+        val updRes = runBlocking { dm.updateNote(UpdateNoteArgs(id = note2Id, text = note2TextExpected, tagIds = listOf(tag2Id, tag4Id))).await() }
 
         //then
         assertNull(updRes.err)
-        val notes = runBlocking { dm.getNotes() }.data!!.items
+        val notes = runBlocking { dm.getNotes(GetNotesArgs()).await() }.data!!.items
         assertEquals(3, notes.size)
         val notesMap = notes.fold(HashMap<Long,Note>()) { map, note ->
             map.also { it.put(note.id, note) }
@@ -529,16 +537,16 @@ class DataManagerInstrumentedTest {
         val note1TextExpected = "note1"
         val note2TextExpected = "note2"
         val note3TextExpected = "note3"
-        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
-        val note2Id = runBlocking { dm.saveNewNote(note2TextExpected, listOf(tag2Id, tag3Id)) }.data!!.id
-        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note2TextExpected, listOf(tag2Id, tag3Id))).await() }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).await() }.data!!.id
 
         //when
-        val updRes = runBlocking { dm.updateNote(noteId = note2Id, isDeleted = true, tagIds = listOf(tag2Id,tag4Id)) }
+        val updRes = runBlocking { dm.updateNote(UpdateNoteArgs(id = note2Id, isDeleted = true, tagIds = listOf(tag2Id,tag4Id))).await() }
 
         //then
         assertNull(updRes.err)
-        val notes = runBlocking { dm.getNotes(searchInDeleted = true) }.data!!.items
+        val notes = runBlocking { dm.getNotes(GetNotesArgs(searchInDeleted = true)).await() }.data!!.items
         assertEquals(1, notes.size)
         val note = notes[0]
         assertEquals(note2TextExpected, note?.text)
@@ -557,16 +565,16 @@ class DataManagerInstrumentedTest {
         val note1TextExpected = "note1"
         val note2TextExpected = "note2-updated"
         val note3TextExpected = "note3"
-        val note1Id = runBlocking { dm.saveNewNote(note1TextExpected, listOf(tag1Id, tag2Id)) }.data!!.id
-        val note2Id = runBlocking { dm.saveNewNote("note2", listOf(tag2Id, tag3Id)) }.data!!.id
-        val note3Id = runBlocking { dm.saveNewNote(note3TextExpected, listOf(tag3Id, tag4Id)) }.data!!.id
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs("note2", listOf(tag2Id, tag3Id))).await() }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).await() }.data!!.id
 
         //when
-        val updRes = runBlocking { dm.updateNote(noteId = note2Id, textArg = note2TextExpected, isDeleted = true, tagIds = listOf(tag2Id,tag4Id)) }
+        val updRes = runBlocking { dm.updateNote(UpdateNoteArgs(id = note2Id, text = note2TextExpected, isDeleted = true, tagIds = listOf(tag2Id,tag4Id))).await() }
 
         //then
         assertNull(updRes.err)
-        val notes = runBlocking { dm.getNotes(searchInDeleted = true) }.data!!.items
+        val notes = runBlocking { dm.getNotes(GetNotesArgs(searchInDeleted = true)).await() }.data!!.items
         assertEquals(1, notes.size)
         val note = notes[0]
         assertEquals(note2TextExpected, note?.text)
@@ -576,7 +584,7 @@ class DataManagerInstrumentedTest {
 
     private fun createInmemoryDataManager() = DataManager(context = appContext, dbName = null)
 
-    private inline fun DataManager.inTestSaveTag(name:String): Tag = runBlocking { saveNewTag(name) }.data!!
+    private inline fun DataManager.inTestSaveTag(name:String): Tag = runBlocking { saveNewTag(SaveNewTagArgs(name)).await() }.data!!
     private inline fun DataManager.inTestGetAllTags(): List<Tag> {
         val repo = getRepo()
         return repo.select(
@@ -589,7 +597,7 @@ class DataManagerInstrumentedTest {
             )}
         ).second
     }
-    private inline fun DataManager.inTestDeleteTag(id:Long) = runBlocking { deleteTag(id) }
+    private inline fun DataManager.inTestDeleteTag(id:Long) = runBlocking { deleteTag(DeleteTagArgs(id)).await() }
 
     private fun getAllNotes(dm:DataManager): List<Note> {
         val repo = dm.getRepo()
