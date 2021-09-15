@@ -1,7 +1,6 @@
--single jsInterface function
-    https://developer.android.com/kotlin/coroutines?gclid=CjwKCAjwyvaJBhBpEiwA8d38vNqMQpIgsc3zxitNjRCVHy8EaxxsODQ5Wid1rsIMOYUsCgO5cKjHuRoC4D8QAvD_BwE&gclsrc=aw.ds
-    https://developer.android.com/kotlin/coroutines/coroutines-best-practices
-    https://medium.com/androiddevelopers/coroutines-patterns-for-work-that-shouldnt-be-cancelled-e26c40f142ad
+-make DataManager a singleton.
+-close repo when app is killed.
+
 -save user settings to a file
 -ui for http server (show keystore, passwords for the keystore, start/stop button)
 -authentication for the http server
@@ -15,3 +14,8 @@
 -more filters
 -navigation from tags to notes search
 -show only relevant tags in the search filter
+
+
+https://developer.android.com/kotlin/coroutines?gclid=CjwKCAjwyvaJBhBpEiwA8d38vNqMQpIgsc3zxitNjRCVHy8EaxxsODQ5Wid1rsIMOYUsCgO5cKjHuRoC4D8QAvD_BwE&gclsrc=aw.ds
+https://developer.android.com/kotlin/coroutines/coroutines-best-practices
+https://medium.com/androiddevelopers/coroutines-patterns-for-work-that-shouldnt-be-cancelled-e26c40f142ad
