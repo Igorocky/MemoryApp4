@@ -11,17 +11,18 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.atomic.AtomicReference
 
 
 class DataManager(
     private val context: Context,
     private val dbName: String? = "tagged-notes-db",
-    private val shareFile: (Uri) -> Unit = {},
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    val shareFile: AtomicReference<(Uri) -> Unit> = AtomicReference(null)
     private val t = DB_V1
-    private var repo = createNewRepo()
-    fun getRepo() = repo
+    private val repo: AtomicReference<Repository> = AtomicReference(createNewRepo())
+    fun getRepo() = repo.get()
 
     private val ERR_CREATE_TAG_NAME_EMPTY = 101
     private val ERR_CREATE_TAG_NAME_DUPLICATED = 102
@@ -56,7 +57,7 @@ class DataManager(
         if (name.isBlank()) {
             BeRespose(err = BeErr(code = ERR_CREATE_TAG_NAME_EMPTY, msg = "Name of a new tag should not be empty."))
         } else {
-            repo.writableDatabase.doInTransaction(
+            getRepo().writableDatabase.doInTransaction(
                 exceptionHandler = {
                     if (it.message?.contains("UNIQUE constraint failed: ${t.tags}.${t.tags.name}") ?: false) {
                         BeRespose(err = BeErr(code = ERR_CREATE_TAG_NAME_DUPLICATED, msg = "'${name}' tag already exists."))
@@ -64,7 +65,7 @@ class DataManager(
                 },
                 errCode = ERR_CREATE_TAG
             ) {
-                val newTag = repo.insertTagStmt!!.exec(name = name)
+                val newTag = getRepo().insertTagStmt!!.exec(name = name)
                 if (newTag.id == -1L) {
                     BeRespose(err = BeErr(code = ERR_CREATE_TAG_NEGATIVE_NEW_ID, msg = "newId == -1"))
                 } else {
@@ -81,7 +82,7 @@ class DataManager(
         if (name.isBlank()) {
             BeRespose(err = BeErr(code = ERR_UPDATE_TAG_NAME_EMPTY, msg = "Name of a tag must not be empty."))
         } else {
-            repo.writableDatabase.doInTransaction(
+            getRepo().writableDatabase.doInTransaction(
                 exceptionHandler = {
                     if (it.message?.contains("UNIQUE constraint failed: ${t.tags}.${t.tags.name}") ?: false) {
                         BeRespose(err = BeErr(code = ERR_UPDATE_TAG_NAME_DUPLICATED, msg = "'${name}' tag already exists."))
@@ -89,7 +90,7 @@ class DataManager(
                 },
                 errCode = ERR_UPDATE_TAG
             ) {
-                BeRespose(data = repo.updateTagStmt!!.exec(id=args.id,name=name))
+                BeRespose(data = getRepo().updateTagStmt!!.exec(id=args.id,name=name))
             }
         }
     }
@@ -97,8 +98,8 @@ class DataManager(
     data class DeleteTagArgs(val id:Long)
     @BeMethod
     fun deleteTag(args:DeleteTagArgs): Deferred<BeRespose<Int>> = CoroutineScope(ioDispatcher).async {
-        repo.writableDatabase.doInTransaction(errCode = ERR_DELETE_TAG) {
-            BeRespose(data = repo.deleteTagStmt!!.exec(args.id))
+        getRepo().writableDatabase.doInTransaction(errCode = ERR_DELETE_TAG) {
+            BeRespose(data = getRepo().deleteTagStmt!!.exec(args.id))
         }
     }
 
@@ -113,8 +114,8 @@ class DataManager(
             args.add("%${params.nameContains.lowercase()}%")
         }
         query.append(" order by ${t.tags.name}")
-        repo.readableDatabase.doInTransaction(errCode = ERR_GET_TAGS) {
-            BeRespose(data = repo.select(
+        getRepo().readableDatabase.doInTransaction(errCode = ERR_GET_TAGS) {
+            BeRespose(data = getRepo().select(
                 query = query.toString(),
                 args = args.toTypedArray(),
                 columnNames = listOf(t.tags.id, t.tags.createdAt, t.tags.name),
@@ -134,13 +135,13 @@ class DataManager(
         if (text.isBlank()) {
             BeRespose(err = BeErr(code = ERR_CREATE_NOTE_TEXT_EMPTY, msg = "Note's content should not be empty."))
         } else {
-            repo.writableDatabase.doInTransaction(errCode = ERR_CREATE_NOTE) transaction@{
-                val newNote = repo.insertNoteStmt!!.exec(text)
+            getRepo().writableDatabase.doInTransaction(errCode = ERR_CREATE_NOTE) transaction@{
+                val newNote = getRepo().insertNoteStmt!!.exec(text)
                 if (newNote.id == -1L) {
                     BeRespose(err = BeErr(code = ERR_CREATE_NOTE_NEGATIVE_NEW_ID, "newId == -1"))
                 } else {
                     args.tagIds.forEach { tagId ->
-                        if (repo.insertNoteToTagStmt!!.exec(newNote.id,tagId) == -1L) {
+                        if (getRepo().insertNoteToTagStmt!!.exec(newNote.id,tagId) == -1L) {
                             return@transaction BeRespose<Note>(err = BeErr(code = ERR_CREATE_NOTE_TAG_REF_NEGATIVE_NEW_ID, "noteToTag.newId == -1"))
                         }
                     }
@@ -177,8 +178,8 @@ class DataManager(
             fun excludeTagId(tagId:Long) = " group_concat(':'||nte.${t.noteToTag.tagId}||':') not like '%:'||${tagId}||':%'"
             query.append(" having ${args.tagIdsToExclude?.asSequence()?.map { excludeTagId(it) }?.joinToString(separator = " and ")}")
         }
-        repo.readableDatabase.doInTransaction(errCode = ERR_GET_NOTES) {
-            val (allRowsFetched, result) = repo.select(
+        getRepo().readableDatabase.doInTransaction(errCode = ERR_GET_NOTES) {
+            val (allRowsFetched, result) = getRepo().select(
                 query = query.toString(),
                 rowsMax = args.rowsMax,
                 columnNames = listOf(t.notes.id, t.notes.createdAt, t.notes.isDeleted, t.notes.text, "tagIds"),
@@ -204,7 +205,7 @@ class DataManager(
         } else if (params.text != null && params.text.isBlank()) {
             BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_TEXT_EMPTY, msg = "Content of a note must not be empty."))
         } else {
-            repo.writableDatabase.doInTransaction(errCode = ERR_UPDATE_NOTE) transaction@{
+            getRepo().writableDatabase.doInTransaction(errCode = ERR_UPDATE_NOTE) transaction@{
                 if (params.text != null || params.isDeleted != null) {
                     val text = params.text?.trim()
                     val query = StringBuilder("update ${t.notes} set ")
@@ -230,9 +231,9 @@ class DataManager(
                     }
                 }
                 if (params.tagIds != null) {
-                    repo.deleteNoteToTagStmt!!.exec(params.id)
+                    getRepo().deleteNoteToTagStmt!!.exec(params.id)
                     params.tagIds.forEach { tagId ->
-                        if (repo.insertNoteToTagStmt!!.exec(params.id,tagId) == -1L) {
+                        if (getRepo().insertNoteToTagStmt!!.exec(params.id,tagId) == -1L) {
                             return@transaction BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_TAG_REF_NEGATIVE_NEW_ID, "noteToTag.newId == -1"))
                         }
                     }
@@ -248,14 +249,14 @@ class DataManager(
         val backupFileName = createBackupFileName(databasePath)
         val backupPath = File(backupDir, backupFileName)
         try {
-            repo.close()
+            getRepo().close()
             databasePath.copyTo(
                 target = backupPath,
                 overwrite = true
             )
             BeRespose(data = Backup(name = backupFileName, size = backupPath.length()))
         } finally {
-            repo = createNewRepo()
+            repo.set(createNewRepo())
         }
     }
 
@@ -279,14 +280,14 @@ class DataManager(
         val databasePath: File = context.getDatabasePath(dbName)
         val backupPath = File(backupDir, args.backupName)
         try {
-            repo.close()
+            getRepo().close()
             backupPath.copyTo(
                 target = databasePath,
                 overwrite = true
             )
             BeRespose(data = "The database was restored from the backup $args.backupName")
         } finally {
-            repo = createNewRepo()
+            repo.set(createNewRepo())
         }
     }
 
@@ -305,11 +306,11 @@ class DataManager(
             "org.igye.taggednotes.fileprovider",
             File(backupDir, args.backupName)
         )
-        shareFile(fileUri)
+        shareFile.get()?.invoke(fileUri)
         BeRespose(data = Unit)
     }
 
-    fun close() = repo.close()
+    fun close() = getRepo().close()
 
     private val backupDir = Utils.getBackupsDir(context)
 

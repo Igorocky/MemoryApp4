@@ -1,9 +1,9 @@
--make DataManager a singleton.
 -close repo when app is killed.
 
 -save user settings to a file
 -ui for http server (show keystore, passwords for the keystore, start/stop button)
 -authentication for the http server
+-zip backup
 -deploy procedure
 -understand how ktor works, treads
 -read and implement: android service for http server

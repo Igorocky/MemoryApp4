@@ -11,19 +11,20 @@ class MainActivity : WebViewActivity<MainActivityViewModel>() {
     override val viewModel: MainActivityViewModel by viewModels {
         object : ViewModelProvider.Factory {
             override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-                return MainActivityViewModel(
-                    dataManager = DataManager(
-                        context = applicationContext,
-                        shareFile = {shareFile(it)}
-                    )
-                ) as T
+                return MainActivityViewModel(dataManager = (application as TaggedNotesApp).appContainer.dataManager) as T
             }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        (application as TaggedNotesApp).appContainer.dataManager.shareFile.set { shareFile(it) }
 //        viewModel.startHttpServer(-1)
+    }
+
+    override fun onDestroy() {
+        (application as TaggedNotesApp).appContainer.dataManager.shareFile.set { null }
+        super.onDestroy()
     }
 
     private fun shareFile(fileUri: Uri) {
