@@ -306,7 +306,7 @@ class DataManager(
             "org.igye.taggednotes.fileprovider",
             File(backupDir, args.backupName)
         )
-        shareFile.get()?.invoke(fileUri)
+        shareFile.get().invoke(fileUri)
         BeRespose(data = Unit)
     }
 
