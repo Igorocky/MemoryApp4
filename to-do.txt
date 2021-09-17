@@ -1,10 +1,9 @@
 -save user settings to a file
 -ui for http server (show keystore, passwords for the keystore, start/stop button)
+-android service for http server
 -authentication for the http server
 -zip backup
 -deploy procedure
--understand how ktor works, treads
--read and implement: android service for http server
 -read: https://developer.android.com/guide/webapps/webview
 
 -stop the http server automatically in 1 hr of inactivity with UI alert
