@@ -1,8 +1,10 @@
 "use strict";
 
-const TextParamView = ({paramName,paramValue,editable = true,onSave,validator}) => {
+const TextParamView = ({paramName,paramValue,editable = true,onSave,validator,isPassword = false}) => {
     const [newParamValue, setNewParamValue] = useState(null)
     const [isInvalidValue, setIsInvalidValue] = useState(false)
+    const [isShowingPassword, setIsShowingPassword] = useState(false)
+    const [isFocused, setIsFocused] = useState(false)
 
     async function save() {
         if (!(validator?.(newParamValue)??true)) {
@@ -11,12 +13,16 @@ const TextParamView = ({paramName,paramValue,editable = true,onSave,validator}) 
             await onSave(newParamValue)
             setNewParamValue(null)
             setIsInvalidValue(false)
+            setIsShowingPassword(false)
+            setIsFocused(false)
         }
     }
 
     function cancel() {
         setNewParamValue(null)
         setIsInvalidValue(false)
+        setIsShowingPassword(false)
+        setIsFocused(false)
     }
 
     function isEditMode() {
@@ -27,11 +33,39 @@ const TextParamView = ({paramName,paramValue,editable = true,onSave,validator}) 
         setNewParamValue(paramValue)
     }
 
+    function getValue() {
+        return !isEditMode() && isPassword ? '********' : newParamValue??paramValue
+    }
+
+    function getTextFieldType() {
+        return isEditMode() && isPassword && !isShowingPassword ? 'password' : 'text'
+    }
+
+    function renderButtons() {
+        if (isFocused) {
+            if (isEditMode()) {
+                return RE.Fragment({},
+                    RE.IconButton({onClick:cancel}, RE.Icon({style:{color:'black'}}, 'highlight_off')),
+                    isPassword ? RE.IconButton(
+                        {onClick: () => setIsShowingPassword(prevValue => !prevValue)},
+                        RE.Icon(
+                            {style: {color: 'black'}},
+                            isShowingPassword ? 'visibility_off' : 'visibility'
+                        )
+                    ) : null,
+                    RE.IconButton({onClick: save}, RE.Icon({style:{color:'black'}}, 'save'))
+                )
+            } else if (editable) {
+                return RE.IconButton({onClick: beginEdit}, RE.Icon({style:{color:'black'}}, 'edit'))
+            }
+        }
+    }
+
     return RE.Container.row.left.center({},{},
-        isEditMode()?RE.IconButton({onClick:cancel}, RE.Icon({style:{color:'black'}}, 'highlight_off')):null,
         RE.TextField({
             label:paramName,
-            value:newParamValue??paramValue,
+            value:getValue(),
+            type:getTextFieldType(),
             error:isInvalidValue,
             variant:isEditMode()?'outlined':'standard',
             autoFocus:true,
@@ -42,8 +76,8 @@ const TextParamView = ({paramName,paramValue,editable = true,onSave,validator}) 
                 event.nativeEvent.keyCode == 13 ? save()
                     : event.nativeEvent.keyCode == 27 ? cancel()
                         : null,
+            onClick: () => setIsFocused(prev => !prev)
         }),
-        isEditMode()?RE.IconButton({onClick: save}, RE.Icon({style:{color:'black'}}, 'save')):null,
-        (!isEditMode() && editable)?RE.IconButton({onClick: beginEdit}, RE.Icon({style:{color:'black'}}, 'edit')):null
+        renderButtons(),
     )
 }
