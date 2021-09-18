@@ -57,6 +57,9 @@ class SharedFileReceiverViewModel(appContext: Context): WebViewViewModel(appCont
             SharedFileType.BACKUP -> Utils.getBackupsDir(appContext)
             SharedFileType.KEYSTORE -> Utils.getKeystoreDir(appContext)
         }
+        if (fileType == SharedFileType.KEYSTORE) {
+            Utils.getKeystoreDir(appContext).listFiles().forEach(File::delete)
+        }
         FileInputStream(appContext.contentResolver.openFileDescriptor(Uri.parse(fileUri), "r")!!.fileDescriptor).use{ inp ->
             FileOutputStream(File(destinationDir, fileName)).use { out ->
                 return inp.copyTo(out)
