@@ -2,26 +2,30 @@
 
 const HttpServerView = ({}) => {
     const {renderMessagePopup, showError, showMessage, showMessageWithProgress} = useMessagePopup()
-    const [httpSettings, setHttpSettings] = useState(null)
+    const [httpServerState, setHttpServerState] = useState(null)
 
     useEffect(async () => {
-        const httpSettings = await be.getHttpServerSettings()
-        setHttpSettings(httpSettings.data)
+        reloadServerState()
     }, [])
+
+    async function reloadServerState() {
+        const serverStateResp = await be.getHttpServerState()
+        setHttpServerState(serverStateResp.data)
+    }
 
     function startHttpServer() {
         be.startHttpServer()
     }
 
     async function saveSettings(newSettings) {
-        const savedSettings = await be.saveHttpServerSettings({...httpSettings, ...newSettings})
-        setHttpSettings(savedSettings.data)
+        await be.saveHttpServerSettings({...httpServerState.settings, ...newSettings})
+        reloadServerState()
     }
 
     function renderTextSetting({title, attrName, editable = true,validator, isPassword = false}) {
         return re(TextParamView,{
             paramName:title,
-            paramValue:httpSettings[attrName],
+            paramValue: httpServerState.settings[attrName],
             onSave: newValue => saveSettings({[attrName]: newValue}),
             editable,
             validator,
@@ -30,7 +34,7 @@ const HttpServerView = ({}) => {
     }
 
     // return RE.Button({variant: 'contained', color: 'primary', onClick: startHttpServer}, "start http server")
-    if (!httpSettings) {
+    if (!httpServerState) {
         return "Loading..."
     } else {
         return RE.Container.col.top.left({},{style: {margin:'10px'}},

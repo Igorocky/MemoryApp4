@@ -9,9 +9,10 @@ class MainActivityViewModel(
     appContext: Context,
     private val dataManager: DataManager,
     private val settingsManager: SettingsManager,
+    private val httpServerManager: HttpServerManager,
 ): WebViewViewModel(
     appContext = appContext,
-    javascriptInterface = listOf(dataManager, settingsManager),
+    javascriptInterface = listOf(dataManager, httpServerManager),
     rootReactComponent = "ViewSelector"
 ) {
     private var httpsServer: HttpsServer? = null

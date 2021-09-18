@@ -7,9 +7,9 @@ const be = {
     deleteBackup: createBeFunction('deleteBackup'),
     shareBackup: createBeFunction('shareBackup'),
 
-    startHttpServer: createBeFunction('startHttpServer'),
-    getHttpServerSettings: createBeFunction('getHttpServerSettings'),
+    getHttpServerState: createBeFunction('getHttpServerState'),
     saveHttpServerSettings: createBeFunction('saveHttpServerSettings'),
+    startHttpServer: createBeFunction('startHttpServer'),
 
     getSharedFileInfo: createBeFunction('getSharedFileInfo'),
     closeSharedFileReceiver: createBeFunction('closeSharedFileReceiver'),

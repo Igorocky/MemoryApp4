@@ -76,7 +76,7 @@ const TextParamView = ({paramName,paramValue,editable = true,onSave,validator,is
                 event.nativeEvent.keyCode == 13 ? save()
                     : event.nativeEvent.keyCode == 27 ? cancel()
                         : null,
-            onClick: () => setIsFocused(prev => !prev)
+            onClick: () => setIsFocused(prev => isEditMode() || !prev)
         }),
         renderButtons(),
     )

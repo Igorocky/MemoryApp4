@@ -11,21 +11,22 @@ class SettingsManager(
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) {
     private val applicationSettingsFileName = "settings.json"
+    private val settingsFile = File(context.filesDir, applicationSettingsFileName)
 
-    fun getApplicationSettings(): Deferred<AppSettings> = CoroutineScope(defaultDispatcher).async {
-        Utils.strToObj(
-            File(context.filesDir, applicationSettingsFileName).readText(),
-            AppSettings::class.java
-        )
+    fun getApplicationSettings(): AppSettings {
+        if (!settingsFile.exists()) {
+            saveApplicationSettings(AppSettings(httpServerSettings = HttpServerSettings()))
+        }
+        return Utils.strToObj(settingsFile.readText(), AppSettings::class.java)
     }
 
-    fun saveApplicationSettings(appSettings: AppSettings): Deferred<Unit> = CoroutineScope(defaultDispatcher).async {
-        FileOutputStream(File(context.filesDir, applicationSettingsFileName)).use {
+    fun saveApplicationSettings(appSettings: AppSettings) {
+        FileOutputStream(settingsFile).use {
             it.write(Utils.objToStr(appSettings).toByteArray())
         }
     }
 
-    fun getKeyStorName(): Deferred<String?> = CoroutineScope(defaultDispatcher).async {
+    fun getKeyStorName(): String {
         var result: String? = null
         for (keyStor in Utils.getKeystoreDir(context).listFiles()) {
             if (result == null) {
@@ -34,19 +35,17 @@ class SettingsManager(
                 keyStor.delete()
             }
         }
-        result
+        return result?:""
     }
 
-    @BeMethod
-    fun getHttpServerSettings(): Deferred<BeRespose<HttpServerSettings>> = CoroutineScope(defaultDispatcher).async {
-        val appSettings = getApplicationSettings().await()
-        BeRespose(data = appSettings.httpServerSettings.copy(keyStoreName = getKeyStorName().await()))
+    fun getHttpServerSettings(): HttpServerSettings {
+        val appSettings = getApplicationSettings()
+        return appSettings.httpServerSettings.copy(keyStoreName = getKeyStorName())
     }
 
-    @BeMethod
-    fun saveHttpServerSettings(httpServerSettings: HttpServerSettings): Deferred<BeRespose<HttpServerSettings>> = CoroutineScope(defaultDispatcher).async {
-        val appSettings = getApplicationSettings().await()
+    fun saveHttpServerSettings(httpServerSettings: HttpServerSettings): HttpServerSettings {
+        val appSettings = getApplicationSettings()
         saveApplicationSettings(appSettings.copy(httpServerSettings = httpServerSettings))
-        getHttpServerSettings().await()
+        return getHttpServerSettings()
     }
 }

@@ -142,20 +142,24 @@ function createFeBeBridgeForUiTestMode() {
         return okResponse(12)
     }
 
-    let HTTP_SERVER_SETTINGS = {
-        keyStoreName: '---keyStoreName---',
-        keyStorePassword: '---keyStorePassword---',
-        keyAlias: '---keyAlias---',
-        privateKeyPassword: '---privateKeyPassword---',
-        port: 8443,
-        serverPassword: '---serverPassword---',
+    const HTTP_SERVER_STATE = {
+        isRunning: false,
+        url: null,
+        settings: {
+            keyStoreName: '---keyStoreName---',
+            keyStorePassword: '---keyStorePassword---',
+            keyAlias: '---keyAlias---',
+            privateKeyPassword: '---privateKeyPassword---',
+            port: 8443,
+            serverPassword: '---serverPassword---',
+        }
     }
-    mockedBeFunctions.getHttpServerSettings = () => {
-        return okResponse(HTTP_SERVER_SETTINGS)
+    mockedBeFunctions.getHttpServerState = () => {
+        return okResponse({...HTTP_SERVER_STATE})
     }
     mockedBeFunctions.saveHttpServerSettings = (settings) => {
-        HTTP_SERVER_SETTINGS = settings
-        return mockedBeFunctions.getHttpServerSettings()
+        HTTP_SERVER_STATE.settings = settings
+        return mockedBeFunctions.getHttpServerState()
     }
 
     function fillDbWithMockData() {
