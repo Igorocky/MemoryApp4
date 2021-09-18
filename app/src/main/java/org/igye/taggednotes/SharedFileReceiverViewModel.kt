@@ -3,7 +3,6 @@ package org.igye.taggednotes
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.webkit.WebView
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -11,15 +10,9 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 
-class SharedFileReceiverViewModel: WebViewViewModel("SharedFileReceiver") {
+class SharedFileReceiverViewModel(appContext: Context): WebViewViewModel(appContext = appContext, rootReactComponent = "SharedFileReceiver") {
     @Volatile lateinit var sharedFileUri: String
     @Volatile lateinit var onClose: () -> Unit
-    @Volatile lateinit var appContext: Context
-
-    override fun getWebView(appContext: Context): WebView {
-        this.appContext = appContext
-        return getWebView(appContext, listOf(this))
-    }
 
     @BeMethod
     fun closeSharedFileReceiver(): Deferred<BeRespose<Boolean>> = viewModelScope.async {

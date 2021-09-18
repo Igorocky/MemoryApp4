@@ -4,16 +4,10 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.viewModels
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 
 class MainActivity : WebViewActivity<MainActivityViewModel>() {
     override val viewModel: MainActivityViewModel by viewModels {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-                return MainActivityViewModel(dataManager = (application as TaggedNotesApp).appContainer.dataManager) as T
-            }
-        }
+        (application as TaggedNotesApp).appContainer.viewModelFactory
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -11,7 +11,7 @@ abstract class WebViewActivity<T : WebViewViewModel> : AppCompatActivity() {
         log.debug("Starting")
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
-        setContentView(viewModel.getWebView(applicationContext))
+        setContentView(viewModel.getWebView())
     }
 
     override fun onDestroy() {

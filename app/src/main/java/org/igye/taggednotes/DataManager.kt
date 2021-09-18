@@ -19,7 +19,7 @@ class DataManager(
     private val dbName: String? = "tagged-notes-db",
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-    val shareFile: AtomicReference<(Uri) -> Unit> = AtomicReference(null)
+    val shareFile: AtomicReference<((Uri) -> Unit)?> = AtomicReference(null)
     private val t = DB_V1
     private val repo: AtomicReference<Repository> = AtomicReference(createNewRepo())
     fun getRepo() = repo.get()
@@ -306,7 +306,7 @@ class DataManager(
             "org.igye.taggednotes.fileprovider",
             File(backupDir, args.backupName)
         )
-        shareFile.get().invoke(fileUri)
+        shareFile.get()?.invoke(fileUri)
         BeRespose(data = Unit)
     }
 

@@ -22,17 +22,21 @@ object Utils {
             jsInterface.javaClass.methods.asSequence()
                 .filter { it.getAnnotation(BeMethod::class.java) != null }
                 .forEach { method ->
-                    resultMap.put(method.name) { defaultDispatcher,argStr ->
-                        CoroutineScope(defaultDispatcher).async {
-                            var deferred: Deferred<*>? = null
-                            val parameterTypes = method.parameterTypes
-                            if (parameterTypes.isNotEmpty()) {
-                                val argsDto = gson.fromJson(argStr, parameterTypes[0])
-                                deferred = method.invoke(jsInterface, argsDto) as Deferred<*>
-                            } else {
-                                deferred = method.invoke(jsInterface) as Deferred<*>
+                    if (resultMap.containsKey(method.name)) {
+                        throw TaggedNotesException("resultMap.containsKey('${method.name}')")
+                    } else {
+                        resultMap.put(method.name) { defaultDispatcher,argStr ->
+                            CoroutineScope(defaultDispatcher).async {
+                                var deferred: Deferred<*>? = null
+                                val parameterTypes = method.parameterTypes
+                                if (parameterTypes.isNotEmpty()) {
+                                    val argsDto = gson.fromJson(argStr, parameterTypes[0])
+                                    deferred = method.invoke(jsInterface, argsDto) as Deferred<*>
+                                } else {
+                                    deferred = method.invoke(jsInterface) as Deferred<*>
+                                }
+                                gson.toJson(deferred.await())
                             }
-                            gson.toJson(deferred.await())
                         }
                     }
                 }

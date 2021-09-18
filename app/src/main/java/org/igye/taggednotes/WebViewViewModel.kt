@@ -1,6 +1,5 @@
 package org.igye.taggednotes
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.view.ViewGroup
@@ -16,13 +15,16 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-abstract class WebViewViewModel(private val rootReactComponent: String, private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default): ViewModel() {
-    protected var webView: WebView? = null
+abstract class WebViewViewModel(
+    protected val appContext: Context,
+    private val javascriptInterface: List<Any> = emptyList(),
+    private val rootReactComponent: String,
+    private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
+): ViewModel() {
+    private var webView: WebView? = null
     private lateinit var beMethods: Map<String, (defaultDispatcher: CoroutineDispatcher, String) -> Deferred<String>>
     protected val gson = Gson()
     protected val log = LoggerImpl(this.javaClass.simpleName)
-
-    abstract fun getWebView(appContext: Context): WebView
 
     fun detachWebView() {
         if (webView != null) {
@@ -30,7 +32,7 @@ abstract class WebViewViewModel(private val rootReactComponent: String, private 
         }
     }
 
-    protected fun getWebView(appContext: Context, javascriptInterface: List<Any>): WebView {
+    fun getWebView(): WebView {
         if (webView == null) {
             val webView = WebView(appContext)
             webView.settings.javaScriptEnabled = true
@@ -55,7 +57,9 @@ abstract class WebViewViewModel(private val rootReactComponent: String, private 
                 .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(appContext))
                 .build()
             webView.webViewClient = LocalContentWebViewClient(assetLoader)
-            beMethods = Utils.createMethodMap(javascriptInterface)
+            beMethods = Utils.createMethodMap(
+                if (javascriptInterface.contains(this)) javascriptInterface else (javascriptInterface + this)
+            )
             webView.addJavascriptInterface(this, "BE")
             webView.loadUrl("https://appassets.androidplatform.net/assets/index.html")
             this.webView = webView
@@ -64,13 +68,11 @@ abstract class WebViewViewModel(private val rootReactComponent: String, private 
     }
 
     @JavascriptInterface
-    fun invokeBeMethod(cbId:Long, methodName:String, args:String) {
+    fun invokeBeMethod(cbId:Long, methodName:String, args:String) = viewModelScope.launch(defaultDispatcher) {
         if (!beMethods.containsKey(methodName)) {
             returnDtoToFrontend(cbId, BeRespose<Any>(err = BeErr(code = 1000, msg = "backend method '$methodName' was not found")))
         } else {
-            viewModelScope.launch(defaultDispatcher) {
-                callFeCallback(cbId, beMethods[methodName]!!.invoke(defaultDispatcher, args)!!.await())
-            }
+            callFeCallback(cbId, beMethods[methodName]!!.invoke(defaultDispatcher, args)!!.await())
         }
     }
 
