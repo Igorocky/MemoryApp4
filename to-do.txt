@@ -1,4 +1,3 @@
--save user settings to a file
 -ui for http server (show keystore, passwords for the keystore, cert alias, start/stop button)
 -android service for http server (start/stop from the UI)
 -authentication for the http server

@@ -7,10 +7,11 @@ import kotlinx.coroutines.async
 
 class MainActivityViewModel(
     appContext: Context,
-    private val dataManager: DataManager
+    private val dataManager: DataManager,
+    private val settingsManager: SettingsManager,
 ): WebViewViewModel(
     appContext = appContext,
-    javascriptInterface = listOf(dataManager),
+    javascriptInterface = listOf(dataManager, settingsManager),
     rootReactComponent = "ViewSelector"
 ) {
     private var httpsServer: HttpsServer? = null
@@ -22,7 +23,7 @@ class MainActivityViewModel(
 
     @BeMethod
     fun startHttpServer(): Deferred<BeRespose<Boolean>> = viewModelScope.async {
-        httpsServer = HttpsServer(applicationContext = appContext, javascriptInterface = listOf(dataManager))
+        httpsServer = HttpsServer(applicationContext = appContext, javascriptInterface = listOf(dataManager, settingsManager))
         BeRespose(data = true)
     }
 }

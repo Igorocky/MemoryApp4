@@ -26,7 +26,7 @@ function createFeBeBridgeForUiTestMode() {
         }
     }
 
-    mockedBeFunctions.getAllTags = () => {
+    mockedBeFunctions.getTags = () => {
         return okResponse(TAGS.map(t => ({...t})))
     }
 
@@ -140,6 +140,22 @@ function createFeBeBridgeForUiTestMode() {
 
     mockedBeFunctions.saveSharedFile = () => {
         return okResponse(12)
+    }
+
+    let HTTP_SERVER_SETTINGS = {
+        keyStoreName: '---keyStoreName---',
+        keyStorePassword: '---keyStorePassword---',
+        keyAlias: '---keyAlias---',
+        privateKeyPassword: '---privateKeyPassword---',
+        port: 8443,
+        serverPassword: '---serverPassword---',
+    }
+    mockedBeFunctions.getHttpServerSettings = () => {
+        return okResponse(HTTP_SERVER_SETTINGS)
+    }
+    mockedBeFunctions.saveHttpServerSettings = (settings) => {
+        HTTP_SERVER_SETTINGS = settings
+        return mockedBeFunctions.getHttpServerSettings()
     }
 
     function fillDbWithMockData() {

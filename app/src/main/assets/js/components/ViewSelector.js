@@ -46,7 +46,7 @@ const ViewSelector = ({}) => {
     }, [environmentName, pageTitle])
 
     useEffect(() => {
-        openView(SEARCH_NOTES_VIEW)
+        openView(HTTP_SERVER_VIEW)
     }, [])
 
     function updatePageTitle() {

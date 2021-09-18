@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 
 class AppContainer(private val context: Context) {
     val dataManager = DataManager(context = context)
+    val settingsManager = SettingsManager(context = context)
 
     val viewModelFactory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
@@ -22,7 +23,8 @@ class AppContainer(private val context: Context) {
     fun createMainActivityViewModel(): MainActivityViewModel {
         return MainActivityViewModel(
             appContext = context,
-            dataManager = dataManager
+            dataManager = dataManager,
+            settingsManager = settingsManager
         )
     }
 

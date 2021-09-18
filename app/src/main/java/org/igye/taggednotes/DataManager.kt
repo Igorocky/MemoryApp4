@@ -18,6 +18,7 @@ class DataManager(
     private val context: Context,
     private val dbName: String? = "tagged-notes-db",
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) {
     val shareFile: AtomicReference<((Uri) -> Unit)?> = AtomicReference(null)
     private val t = DB_V1
