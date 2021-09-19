@@ -161,6 +161,14 @@ function createFeBeBridgeForUiTestMode() {
         HTTP_SERVER_STATE.settings = settings
         return mockedBeFunctions.getHttpServerState()
     }
+    mockedBeFunctions.startHttpServer = () => {
+        HTTP_SERVER_STATE.isRunning = true
+        return mockedBeFunctions.getHttpServerState()
+    }
+    mockedBeFunctions.stopHttpServer = () => {
+        HTTP_SERVER_STATE.isRunning = false
+        return mockedBeFunctions.getHttpServerState()
+    }
 
     function fillDbWithMockData() {
         const numOfTags = 30
@@ -212,6 +220,6 @@ function createFeBeBridgeForUiTestMode() {
     }
 }
 
-const testuiFeBeBridge = createFeBeBridgeForUiTestMode()
+const mockFeBeBridge = createFeBeBridgeForUiTestMode()
 
-const createBeFunction = testuiFeBeBridge.createBeFunction
+const createBeFunction = mockFeBeBridge.createBeFunction

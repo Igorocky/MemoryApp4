@@ -26,21 +26,21 @@ class SettingsManager(
         }
     }
 
-    fun getKeyStorName(): String {
-        var result: String? = null
+    fun getKeyStorFile(): File? {
+        var result: File? = null
         for (keyStor in Utils.getKeystoreDir(context).listFiles()) {
             if (result == null) {
-                result = keyStor.name
+                result = keyStor
             } else {
                 keyStor.delete()
             }
         }
-        return result?:""
+        return result
     }
 
     fun getHttpServerSettings(): HttpServerSettings {
         val appSettings = getApplicationSettings()
-        return appSettings.httpServerSettings.copy(keyStoreName = getKeyStorName())
+        return appSettings.httpServerSettings.copy(keyStoreName = getKeyStorFile()?.name?:"")
     }
 
     fun saveHttpServerSettings(httpServerSettings: HttpServerSettings): HttpServerSettings {

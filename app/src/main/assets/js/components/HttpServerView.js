@@ -13,8 +13,17 @@ const HttpServerView = ({}) => {
         setHttpServerState(serverStateResp.data)
     }
 
-    function startHttpServer() {
-        be.startHttpServer()
+    async function startHttpServer() {
+        const resp = await be.startHttpServer()
+        if (resp.err) {
+            await showError(resp.err)
+        }
+        reloadServerState()
+    }
+
+    async function stopHttpServer() {
+        await be.stopHttpServer()
+        reloadServerState()
     }
 
     async function saveSettings(newSettings) {
@@ -33,17 +42,28 @@ const HttpServerView = ({}) => {
         })
     }
 
-    // return RE.Button({variant: 'contained', color: 'primary', onClick: startHttpServer}, "start http server")
+    function renderButtons() {
+        const startStopButton = httpServerState.isRunning
+            ? RE.Button({variant: 'contained', color: 'secondary', onClick: stopHttpServer}, "stop http server")
+            : RE.Button({variant: 'contained', color: 'primary', onClick: startHttpServer}, "start http server")
+        return RE.Container.row.left.center({}, {},
+            iconButton({iconName:'refresh', onClick: reloadServerState}),
+            startStopButton
+        )
+    }
+
     if (!httpServerState) {
         return "Loading..."
     } else {
         return RE.Container.col.top.left({},{style: {margin:'10px'}},
+            renderButtons(),
             renderTextSetting({title:'Key store file',attrName:'keyStoreName',editable:false}),
             renderTextSetting({title:'Key store password',attrName:'keyStorePassword',isPassword:true}),
             renderTextSetting({title:'Key alias',attrName:'keyAlias'}),
             renderTextSetting({title:'Private key password',attrName:'privateKeyPassword',isPassword:true}),
             renderTextSetting({title:'Port',attrName:'port',validator: str => str.match(/^\d+$/)?true:false}),
             renderTextSetting({title:'Server password',attrName:'serverPassword',isPassword:true}),
+            renderMessagePopup(),
         )
     }
 }

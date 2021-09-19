@@ -19,7 +19,7 @@ class CustomAssetsPathHandler(
                 result.encoding,
                 ByteArrayInputStream(
                     String(result.data.readBytes(), Charsets.UTF_8)
-                        .replaceFirst("js/testui-fe-be-bridge.js", feBeBridge)
+                        .replaceFirst("js/mock-fe-be-bridge.js", feBeBridge)
                         .replaceFirst(
                             "const ROOT_REACT_COMPONENT = null",
                             "const ROOT_REACT_COMPONENT = $rootReactComponent"

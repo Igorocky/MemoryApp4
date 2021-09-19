@@ -6,9 +6,7 @@ function createBeFunction(funcName) {
             method: 'POST',
             body: JSON.stringify(dto??{}),
         })
-        const body = await res.json()
-        console.log('body', body)
-        return body
+        return await res.json()
     }
 }
 

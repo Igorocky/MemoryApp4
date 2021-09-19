@@ -10,6 +10,7 @@ const be = {
     getHttpServerState: createBeFunction('getHttpServerState'),
     saveHttpServerSettings: createBeFunction('saveHttpServerSettings'),
     startHttpServer: createBeFunction('startHttpServer'),
+    stopHttpServer: createBeFunction('stopHttpServer'),
 
     getSharedFileInfo: createBeFunction('getSharedFileInfo'),
     closeSharedFileReceiver: createBeFunction('closeSharedFileReceiver'),

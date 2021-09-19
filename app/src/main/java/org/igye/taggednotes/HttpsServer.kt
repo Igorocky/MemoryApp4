@@ -9,24 +9,31 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.util.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.igye.taggednotes.Utils.createMethodMap
 import java.io.File
 import java.security.KeyStore
+import kotlin.text.toCharArray
 
-class HttpsServer(applicationContext: Context, javascriptInterface: List<Any>, private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default) {
-    private val logger = LoggerImpl(">>>>>")
-    private val keyStoreFile = File(Utils.getKeystoreDir(applicationContext), "ktor-keystore.bks")
-    private val keyAlias = "key0"
-    private val privateKeyPassword = ""
-    private val keyStorePassword = ""
-
+class HttpsServer(
+    appContext: Context,
+    keyStoreFile: File,
+    keyAlias: String,
+    privateKeyPassword: String,
+    keyStorePassword: String,
+    portNum: Int,
+    javascriptInterface: List<Any>,
+    private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) {
+    private val logger = LoggerImpl("http-server")
     private val beMethods = createMethodMap(javascriptInterface)
 
     private val assetsPathHandler: CustomAssetsPathHandler = CustomAssetsPathHandler(
-        appContext = applicationContext,
+        appContext = appContext,
         feBeBridge = "js/http-fe-be-bridge.js"
     )
 
@@ -40,32 +47,39 @@ class HttpsServer(applicationContext: Context, javascriptInterface: List<Any>, p
             keyStore = keyStore,
             keyAlias = keyAlias,
             keyStorePassword = { keyStorePassword.toCharArray() },
-            privateKeyPassword = { privateKeyPassword.toCharArray() }) {
-            port = 8443
+            privateKeyPassword = { privateKeyPassword.toCharArray() }
+        ) {
+            port = portNum
             keyStorePath = keyStoreFile
         }
         module {
             routing {
                 get("/{...}") {
                     val path = call.request.path()
-                    logger.debug("call.request.path() = '$path'")
                     if ("/" == path || path.startsWith("/css/") || path.startsWith("/js/")) {
-                        withContext(Dispatchers.IO) {
+                        withContext(ioDispatcher) {
                             val response = assetsPathHandler.handle(if ("/" == path) "index.html" else path)!!
                             call.respondOutputStream(contentType = ContentType.parse(response.mimeType), status = HttpStatusCode.OK) {
                                 response.data.use { it.copyTo(this) }
                             }
                         }
                     } else {
-                        call.respondText("Hello, world!")
+                        log.error("Path not found: $path")
+                        call.respond(status = HttpStatusCode.NotFound, message = "Not found.")
                     }
                 }
                 post("/be/{funcName}") {
                     val funcName = call.parameters["funcName"]
-                    logger.debug("func name = $funcName")
                     withContext(defaultDispatcher) {
-                        call.respondText(contentType = ContentType.Application.Json, status = HttpStatusCode.OK) {
-                            beMethods.get(funcName)?.invoke(defaultDispatcher, call.receiveText())?.await()?:"backend method '$funcName' was not found"
+                        val beMethod = beMethods.get(funcName)
+                        if (beMethod == null) {
+                            val msg = "backend method '$funcName' was not found"
+                            log.error(msg)
+                            call.respond(status = HttpStatusCode.NotFound, message = msg)
+                        } else {
+                            call.respondText(contentType = ContentType.Application.Json, status = HttpStatusCode.OK) {
+                                beMethod.invoke(defaultDispatcher, call.receiveText()).await()
+                            }
                         }
                     }
                 }
@@ -75,12 +89,7 @@ class HttpsServer(applicationContext: Context, javascriptInterface: List<Any>, p
 
     private val httpsServer = embeddedServer(Netty, environment).start(wait = false)
 
-    private fun generateCertificate() {
-        generateCertificate(
-            file = File(".../android/key-stores/ktor-keystore.jks"),
-            keyAlias = "",
-            keyPassword = "",
-            jksPassword = ""
-        )
+    fun stop() {
+        httpsServer.stop(0,0)
     }
 }
