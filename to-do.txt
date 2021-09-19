@@ -1,11 +1,10 @@
--show http server url in UI
--check await in http-fe-be-bridge.js
 -android service for http server (start/stop from the UI)
 -authentication for the http server
 -zip backup
 -deploy procedure
--enum with error codes
 
+-enum with error codes
+-show http server url in UI
 -read: https://developer.android.com/guide/webapps/webview
 -stop the http server automatically in 1 hr of inactivity with UI alert
 -version handling in index.html
