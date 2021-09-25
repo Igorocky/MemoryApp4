@@ -1,6 +1,7 @@
--android service for http server (start/stop from the UI)
+-android service for http server: navigate to https service view from the votification
 -authentication for the http server
 -zip backup
+-app icon
 -deploy procedure
 
 -enum with error codes

@@ -1,6 +1,7 @@
 package org.igye.taggednotes
 
 import android.content.Context
+import android.content.Intent
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicReference
 
@@ -36,6 +37,9 @@ class HttpServerManager(
         } else if (httpsServer.get() != null) {
             BeRespose(err = BeErr(code = 2, msg = "Http server is already running."))
         } else {
+            Intent(appContext, HttpsServerService::class.java).also { intent ->
+                appContext.startService(intent)
+            }
             val serverSettings = settingsManager.getHttpServerSettings()
             try {
                 httpsServer.set(HttpsServer(
@@ -59,6 +63,9 @@ class HttpServerManager(
     fun stopHttpServer(): Deferred<BeRespose<HttpServerState>> = CoroutineScope(defaultDispatcher).async {
         httpsServer.get()?.stop()
         httpsServer.set(null)
+        Intent(appContext, HttpsServerService::class.java).also { intent ->
+            appContext.stopService(intent)
+        }
         getHttpServerState().await()
     }
 }

@@ -44,8 +44,8 @@ const HttpServerView = ({}) => {
 
     function renderButtons() {
         const startStopButton = httpServerState.isRunning
-            ? RE.Button({variant: 'contained', color: 'secondary', onClick: stopHttpServer}, "stop http server")
-            : RE.Button({variant: 'contained', color: 'primary', onClick: startHttpServer}, "start http server")
+            ? RE.Button({variant: 'contained', color: 'secondary', onClick: stopHttpServer}, "stop https server")
+            : RE.Button({variant: 'contained', color: 'primary', onClick: startHttpServer}, "start https server")
         return RE.Container.row.left.center({}, {},
             iconButton({iconName:'refresh', onClick: reloadServerState}),
             startStopButton

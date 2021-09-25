@@ -64,7 +64,7 @@ class HttpsServer(
                             }
                         }
                     } else {
-                        log.error("Path not found: $path")
+                        logger.error("Path not found: $path")
                         call.respond(status = HttpStatusCode.NotFound, message = "Not found.")
                     }
                 }
@@ -74,7 +74,7 @@ class HttpsServer(
                         val beMethod = beMethods.get(funcName)
                         if (beMethod == null) {
                             val msg = "backend method '$funcName' was not found"
-                            log.error(msg)
+                            logger.error(msg)
                             call.respond(status = HttpStatusCode.NotFound, message = msg)
                         } else {
                             call.respondText(contentType = ContentType.Application.Json, status = HttpStatusCode.OK) {
