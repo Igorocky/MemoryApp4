@@ -61,14 +61,7 @@ class HttpsServer(
         module {
             routing {
                 get("/{...}") {
-                    if (sessionId.get() == null || sessionId.get() != call.request.cookies[SESSION_ID_COOKIE_NAME]) {
-                        withContext(ioDispatcher) {
-                            val response = assetsPathHandler.handle("https-server-auth.html")!!
-                            call.respondOutputStream(contentType = ContentType.parse(response.mimeType), status = HttpStatusCode.OK) {
-                                response.data.use { it.copyTo(this) }
-                            }
-                        }
-                    } else {
+                    authenticated(call) {
                         val path = call.request.path()
                         if ("/" == path || path.startsWith("/css/") || path.startsWith("/js/")) {
                             withContext(ioDispatcher) {
@@ -84,14 +77,7 @@ class HttpsServer(
                     }
                 }
                 post("/be/{funcName}") {
-                    if (sessionId.get() == null || sessionId.get() != call.request.cookies[SESSION_ID_COOKIE_NAME]) {
-                        withContext(ioDispatcher) {
-                            val response = assetsPathHandler.handle("https-server-auth.html")!!
-                            call.respondOutputStream(contentType = ContentType.parse(response.mimeType), status = HttpStatusCode.OK) {
-                                response.data.use { it.copyTo(this) }
-                            }
-                        }
-                    } else {
+                    authenticated(call) {
                         val funcName = call.parameters["funcName"]
                         withContext(defaultDispatcher) {
                             val beMethod = beMethods.get(funcName)
@@ -124,5 +110,18 @@ class HttpsServer(
 
     fun stop() {
         httpsServer.stop(0,0)
+    }
+
+    private suspend fun authenticated(call: ApplicationCall, onAuthenticated: suspend () -> Unit) {
+        if (sessionId.get() == null || sessionId.get() != call.request.cookies[SESSION_ID_COOKIE_NAME]) {
+            withContext(ioDispatcher) {
+                val response = assetsPathHandler.handle("https-server-auth.html")!!
+                call.respondOutputStream(contentType = ContentType.parse(response.mimeType), status = HttpStatusCode.OK) {
+                    response.data.use { it.copyTo(this) }
+                }
+            }
+        } else {
+            onAuthenticated()
+        }
     }
 }
