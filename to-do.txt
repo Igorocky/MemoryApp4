@@ -1,4 +1,3 @@
--android service for http server: navigate to https service view from the votification
 -authentication for the http server
 -zip backup
 -app icon
@@ -12,6 +11,7 @@
 -more filters
 -navigation from tags to notes search
 -show only relevant tags in the search filter
+-android service for http server: navigate to https service view from the votification
 
 
 https://developer.android.com/kotlin/coroutines?gclid=CjwKCAjwyvaJBhBpEiwA8d38vNqMQpIgsc3zxitNjRCVHy8EaxxsODQ5Wid1rsIMOYUsCgO5cKjHuRoC4D8QAvD_BwE&gclsrc=aw.ds

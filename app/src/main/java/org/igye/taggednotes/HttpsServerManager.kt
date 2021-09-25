@@ -5,7 +5,7 @@ import android.content.Intent
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicReference
 
-class HttpServerManager(
+class HttpsServerManager(
     private val appContext: Context,
     private val javascriptInterface: List<Any>,
     private val settingsManager: SettingsManager,
@@ -50,6 +50,7 @@ class HttpServerManager(
                     keyAlias = serverSettings.keyAlias,
                     privateKeyPassword = serverSettings.privateKeyPassword,
                     portNum = serverSettings.port,
+                    serverPassword = serverSettings.serverPassword,
                     javascriptInterface = javascriptInterface + self
                 ))
             } catch (ex: Exception) {

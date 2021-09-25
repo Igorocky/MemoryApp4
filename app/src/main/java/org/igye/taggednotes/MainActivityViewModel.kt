@@ -5,9 +5,9 @@ import android.content.Context
 class MainActivityViewModel(
     appContext: Context,
     dataManager: DataManager,
-    httpServerManager: HttpServerManager,
+    httpsServerManager: HttpsServerManager,
 ): WebViewViewModel(
     appContext = appContext,
-    javascriptInterface = listOf(dataManager, httpServerManager),
+    javascriptInterface = listOf(dataManager, httpsServerManager),
     rootReactComponent = "ViewSelector"
 )
