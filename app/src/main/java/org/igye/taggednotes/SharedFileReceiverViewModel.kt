@@ -49,7 +49,13 @@ class SharedFileReceiverViewModel(appContext: Context): WebViewViewModel(appCont
     }
 
     private fun getFileType(fileName: String): SharedFileType {
-        return if (fileName.endsWith(".bks")) SharedFileType.KEYSTORE else SharedFileType.BACKUP
+        return if (fileName.endsWith(".bks")) {
+            SharedFileType.KEYSTORE
+        } else if (fileName.endsWith(".zip")) {
+            SharedFileType.BACKUP
+        } else {
+            throw TaggedNotesException("unsupported file type.")
+        }
     }
 
     private fun copyFile(fileUri: String, fileType: SharedFileType, fileName: String): Long {

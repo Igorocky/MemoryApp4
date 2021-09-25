@@ -46,7 +46,7 @@ const ViewSelector = ({}) => {
     }, [environmentName, pageTitle])
 
     useEffect(() => {
-        openView(HTTP_SERVER_VIEW)
+        openView(TAGS_VIEW)
     }, [])
 
     function updatePageTitle() {

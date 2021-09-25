@@ -7,11 +7,15 @@ import androidx.core.content.FileProvider
 import kotlinx.coroutines.*
 import org.igye.taggednotes.Utils.isNotEmpty
 import java.io.File
+import java.io.FileOutputStream
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.atomic.AtomicReference
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 
 class DataManager(
@@ -246,16 +250,21 @@ class DataManager(
 
     @BeMethod
     fun doBackup(): Deferred<BeRespose<Backup>> = CoroutineScope(ioDispatcher).async {
-        val databasePath: File = context.getDatabasePath(dbName)
-        val backupFileName = createBackupFileName(databasePath)
-        val backupPath = File(backupDir, backupFileName)
         try {
             getRepo().close()
-            databasePath.copyTo(
-                target = backupPath,
-                overwrite = true
-            )
-            BeRespose(data = Backup(name = backupFileName, size = backupPath.length()))
+            val databasePath: File = context.getDatabasePath(dbName)
+            val backupFileName = createBackupFileName(databasePath)
+            val backupFile = File(backupDir, backupFileName + ".zip")
+
+            ZipOutputStream(FileOutputStream(backupFile)).use { zipOut ->
+                val backupZipEntry = ZipEntry(backupFileName)
+                zipOut.putNextEntry(backupZipEntry)
+                databasePath.inputStream().use { dbData ->
+                    dbData.copyTo(zipOut)
+                }
+                zipOut.closeEntry()
+                BeRespose(data = Backup(name = backupFile.name, size = backupFile.length()))
+            }
         } finally {
             repo.set(createNewRepo())
         }
@@ -279,14 +288,18 @@ class DataManager(
     @BeMethod
     fun restoreFromBackup(args:RestoreFromBackupArgs): Deferred<BeRespose<String>> = CoroutineScope(ioDispatcher).async {
         val databasePath: File = context.getDatabasePath(dbName)
-        val backupPath = File(backupDir, args.backupName)
+        val backupFile = File(backupDir, args.backupName)
         try {
             getRepo().close()
-            backupPath.copyTo(
-                target = databasePath,
-                overwrite = true
-            )
-            BeRespose(data = "The database was restored from the backup $args.backupName")
+            val zipFile = ZipFile(backupFile)
+            val entries = zipFile.entries()
+            val entry = entries.nextElement()
+            zipFile.getInputStream(entry).use { inp ->
+                FileOutputStream(databasePath).use { out ->
+                    inp.copyTo(out)
+                }
+            }
+            BeRespose(data = "The database was restored from the backup ${args.backupName}")
         } finally {
             repo.set(createNewRepo())
         }
