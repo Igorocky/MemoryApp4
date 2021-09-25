@@ -52,11 +52,18 @@ const HttpServerView = ({}) => {
         )
     }
 
+    function renderUrl() {
+        if (httpServerState.isRunning) {
+            return 'Running on ' + httpServerState.url
+        }
+    }
+
     if (!httpServerState) {
         return "Loading..."
     } else {
         return RE.Container.col.top.left({},{style: {margin:'10px'}},
             renderButtons(),
+            renderUrl(),
             renderTextSetting({title:'Key store file',attrName:'keyStoreName',editable:false}),
             renderTextSetting({title:'Key store password',attrName:'keyStorePassword',isPassword:true}),
             renderTextSetting({title:'Key alias',attrName:'keyAlias'}),

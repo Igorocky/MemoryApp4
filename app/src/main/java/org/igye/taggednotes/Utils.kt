@@ -57,24 +57,15 @@ object Utils {
         return dir
     }
 
-    fun getIpAddress(useIPv4: Boolean): String? {
+    fun getIpAddress(): String? {
         val interfaces: List<NetworkInterface> = Collections.list(NetworkInterface.getNetworkInterfaces())
         for (intf in interfaces) {
             val addrs: List<InetAddress> = Collections.list(intf.getInetAddresses())
             for (addr in addrs) {
                 if (!addr.isLoopbackAddress()) {
                     val sAddr: String = addr.getHostAddress()
-                    val isIPv4 = sAddr.indexOf(':') < 0
-                    if (useIPv4) {
-                        if (isIPv4) return sAddr
-                    } else {
-                        if (!isIPv4) {
-                            val delim = sAddr.indexOf('%')
-                            return if (delim < 0)
-                                sAddr.uppercase(Locale.getDefault())
-                            else
-                                sAddr.substring(0, delim).uppercase(Locale.getDefault())
-                        }
+                    if (sAddr.indexOf(':') < 0) {
+                        return sAddr
                     }
                 }
             }

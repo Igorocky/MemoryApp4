@@ -16,10 +16,11 @@ class HttpServerManager(
 
     @BeMethod
     fun getHttpServerState(): Deferred<BeRespose<HttpServerState>> = CoroutineScope(defaultDispatcher).async {
+        val settings = settingsManager.getHttpServerSettings()
         BeRespose(data = HttpServerState(
             isRunning = httpsServer.get() != null,
-            url = null,
-            settings = settingsManager.getHttpServerSettings()
+            url = "https://${Utils.getIpAddress()}:${settings.port}",
+            settings = settings
         ))
     }
 

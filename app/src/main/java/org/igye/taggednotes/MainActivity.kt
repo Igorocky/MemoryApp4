@@ -13,7 +13,6 @@ class MainActivity : WebViewActivity<MainActivityViewModel>() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         (application as TaggedNotesApp).appContainer.dataManager.shareFile.set { shareFile(it) }
-//        viewModel.startHttpServer(-1)
     }
 
     override fun onDestroy() {

@@ -144,7 +144,7 @@ function createFeBeBridgeForUiTestMode() {
 
     const HTTP_SERVER_STATE = {
         isRunning: false,
-        url: null,
+        url: "URL",
         settings: {
             keyStoreName: '---keyStoreName---',
             keyStorePassword: '---keyStorePassword---',
