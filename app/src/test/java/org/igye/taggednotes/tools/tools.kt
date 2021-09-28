@@ -26,6 +26,7 @@ object Tools {
         val releaseVersion = getCurrVersionName()
         val tagName = "Release-$releaseVersion"
         commit(tagName)
+        File("./app/build").deleteRecursively()
         buildProject()
         tag(tagName)
         incProjectVersion()
