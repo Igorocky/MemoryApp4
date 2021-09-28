@@ -49,7 +49,7 @@ object Tools {
     }
 
     private fun changeApplicationName(from:String, to:String) {
-        replaceSubstringInFile(File(".app/src/main/res/values/strings.xml"), from, to)
+        replaceSubstringInFile(File("./app/src/main/res/values/strings.xml"), from, to)
     }
 
     private fun checkWorkingDirectory() {
