@@ -1,6 +1,8 @@
--app icon
 -deploy procedure
+-generate release cert
+-app icon
 
+-"delete forever" feature
 -enum with error codes
 -show http server url in UI
 -read: https://developer.android.com/guide/webapps/webview

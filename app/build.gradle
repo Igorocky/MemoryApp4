@@ -11,8 +11,8 @@ android {
         applicationId "org.igye.taggednotes.dev"
         minSdkVersion 26
         targetSdkVersion 30
-        versionCode 1000
-        versionName "1.0"
+        versionCode 1
+        versionName "0.1"
         archivesBaseName = "tagged-notes-$versionName"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
