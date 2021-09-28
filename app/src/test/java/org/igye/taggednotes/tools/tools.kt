@@ -86,7 +86,7 @@ object Tools {
     }
 
     private fun getCurrVersionName(): String {
-        val matcher = compile("versionName \"(\\d+\\.\\d+)\"").matcher(File("./app/build.gradle").readText())
+        val matcher = compile(".*versionName \"(\\d+\\.\\d+)\".*", Pattern.DOTALL).matcher(File("./app/build.gradle").readText())
         if (!matcher.matches()) {
             throw RuntimeException("Cannot extract curent version.")
         } else {
