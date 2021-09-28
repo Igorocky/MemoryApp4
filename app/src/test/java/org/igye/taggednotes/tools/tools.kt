@@ -64,9 +64,9 @@ object Tools {
         log("buildProject")
         val result: Pair<String?, Matcher?>? = runCommand(
             "gradle clean assembleRelease",
-            compile("(.*\\[INFO\\] BUILD SUCCESS.*)|(.*\\[INFO\\] BUILD FAILURE.*)")
+            compile("(.*\\[INFO\\] BUILD SUCCESS.*)|(.*BUILD FAILED.*)")
         )
-        if (result == null || result.first?.contains("BUILD FAILURE")?:true) {
+        if (result == null || result.first?.contains("BUILD FAILED")?:true) {
             throw RuntimeException("Project build failed.")
         }
     }
