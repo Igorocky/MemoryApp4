@@ -15,7 +15,7 @@
         android:theme="@style/Theme.TaggedNotes">
         <provider
                 android:name="androidx.core.content.FileProvider"
-                android:authorities="org.igye.taggednotes.fileprovider.dev"
+                android:authorities="org.igye.taggednotes.fileprovider"
                 android:grantUriPermissions="true"
                 android:exported="false">
             <meta-data
