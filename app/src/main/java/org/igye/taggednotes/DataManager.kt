@@ -136,12 +136,11 @@ class DataManager(
     data class SaveNewNoteArgs(val text:String, val tagIds: List<Long>)
     @BeMethod
     fun saveNewNote(args:SaveNewNoteArgs): Deferred<BeRespose<Note>> = CoroutineScope(ioDispatcher).async {
-        val text = args.text.replace(" ", "")
-        if (text.isBlank()) {
+        if (args.text.isBlank()) {
             BeRespose(err = BeErr(code = ERR_CREATE_NOTE_TEXT_EMPTY, msg = "Note's content should not be empty."))
         } else {
             getRepo().writableDatabase.doInTransaction(errCode = ERR_CREATE_NOTE) transaction@{
-                val newNote = getRepo().insertNoteStmt!!.exec(text)
+                val newNote = getRepo().insertNoteStmt!!.exec(args.text)
                 if (newNote.id == -1L) {
                     BeRespose(err = BeErr(code = ERR_CREATE_NOTE_NEGATIVE_NEW_ID, "newId == -1"))
                 } else {

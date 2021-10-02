@@ -62,6 +62,7 @@ function createFeBeBridgeForUiTestMode() {
     }
 
     mockedBeFunctions.getNotes = ({tagIdsToInclude=[],tagIdsToExclude=[],searchInDeleted = false}) => {
+        console.log(tagIdsToInclude, 'tagIdsToInclude')
         function getAllTagIdsOfNote({noteId}) {
             return NOTES_TO_TAGS
                 .filter(({noteId:id,tagId})=>noteId==id)
@@ -80,7 +81,7 @@ function createFeBeBridgeForUiTestMode() {
             .filter(note => hasTags({noteId:note.id,tagIds:tagIdsToInclude}))
             .filter(note => !hasTags({noteId:note.id, tagIds:tagIdsToExclude, atLeastOne:true}))
             .map(note => ({...note, tagIds:getAllTagIdsOfNote({noteId:note.id})}))
-        return okResponse(result)
+        return okResponse({items:result,complete:true})
     }
 
     mockedBeFunctions.updateNote = ({id,text,tagIds,isDeleted}) => {

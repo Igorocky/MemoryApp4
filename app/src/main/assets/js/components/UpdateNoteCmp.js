@@ -36,6 +36,7 @@ const UpdateNoteCmp = ({allTags,allTagsMap,note,onSave,onCancel,saveBtnText = 's
     return RE.Container.col.top.left({},{},
         renderButtons(),
         RE.TextField({
+            autoCorrect:'off', autoCapitalize:'none', spellCheck:'false',
             value:text,
             variant:'outlined',
             autoFocus:true,

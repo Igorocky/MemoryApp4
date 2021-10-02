@@ -22,6 +22,7 @@ const CreateNewTagCmp = ({onSave}) => {
                 RE.Icon({style:{color:'black'}}, 'highlight_off')
             ),
             RE.TextField({
+                autoCorrect:'off', autoCapitalize:'none', spellCheck:'false',
                 value:tagName,
                 variant:'outlined',
                 autoFocus:true,

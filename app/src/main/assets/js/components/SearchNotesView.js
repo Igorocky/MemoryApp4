@@ -33,6 +33,7 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
             tagIdsToExclude: tagsToExclude.map(t => t.id),
             searchInDeleted
         })
+        console.log('notesResp', notesResp)
         if (notesResp.err) {
             await showError(notesResp.err)
             editFilter()
