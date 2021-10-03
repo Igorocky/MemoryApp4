@@ -3,8 +3,11 @@ package org.igye.taggednotes
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class AppContainer(private val context: Context) {
+    val beThreadPool: ExecutorService = Executors.newFixedThreadPool(4)
     val dataManager = DataManager(context = context)
     val settingsManager = SettingsManager(context = context)
     val httpsServerManager = HttpsServerManager(appContext = context, settingsManager = settingsManager, javascriptInterface = listOf(dataManager))
@@ -25,13 +28,15 @@ class AppContainer(private val context: Context) {
         return MainActivityViewModel(
             appContext = context,
             dataManager = dataManager,
-            httpsServerManager = httpsServerManager
+            httpsServerManager = httpsServerManager,
+            beThreadPool = beThreadPool
         )
     }
 
     fun createSharedFileReceiverViewModel(): SharedFileReceiverViewModel {
         return SharedFileReceiverViewModel(
-            appContext = context
+            appContext = context,
+            beThreadPool = beThreadPool
         )
     }
 }

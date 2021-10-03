@@ -23,8 +23,8 @@ object Utils {
     fun <T> strToObj(str:String, classOfT: Class<T>): T = gson.fromJson(str, classOfT)
     fun objToStr(obj:Any): String = gson.toJson(obj)
 
-    fun createMethodMap(jsInterfaces: List<Any>): Map<String, (defaultDispatcher:CoroutineDispatcher, String) -> Deferred<String>> {
-        val resultMap = HashMap<String, (defaultDispatched:CoroutineDispatcher, String) -> Deferred<String>>()
+    fun createMethodMap(jsInterfaces: List<Any>): Map<String, (String) -> String> {
+        val resultMap = HashMap<String, (String) -> String>()
         jsInterfaces.forEach{ jsInterface ->
             jsInterface.javaClass.methods.asSequence()
                 .filter { it.getAnnotation(BeMethod::class.java) != null }
@@ -32,18 +32,15 @@ object Utils {
                     if (resultMap.containsKey(method.name)) {
                         throw TaggedNotesException("resultMap.containsKey('${method.name}')")
                     } else {
-                        resultMap.put(method.name) { defaultDispatcher,argStr ->
-                            CoroutineScope(defaultDispatcher).async {
-                                var deferred: Deferred<*>? = null
-                                val parameterTypes = method.parameterTypes
+                        resultMap.put(method.name) { argStr ->
+                            val parameterTypes = method.parameterTypes
+                            gson.toJson(
                                 if (parameterTypes.isNotEmpty()) {
-                                    val argsDto = gson.fromJson(argStr, parameterTypes[0])
-                                    deferred = method.invoke(jsInterface, argsDto) as Deferred<*>
+                                    method.invoke(jsInterface, gson.fromJson(argStr, parameterTypes[0]))
                                 } else {
-                                    deferred = method.invoke(jsInterface) as Deferred<*>
+                                    method.invoke(jsInterface)
                                 }
-                                gson.toJson(deferred.await())
-                            }
+                            )
                         }
                     }
                 }

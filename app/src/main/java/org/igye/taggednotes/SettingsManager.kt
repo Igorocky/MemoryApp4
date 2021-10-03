@@ -1,14 +1,11 @@
 package org.igye.taggednotes
 
 import android.content.Context
-import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileOutputStream
 
 class SettingsManager(
     private val context: Context,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) {
     private val applicationSettingsFileName = "settings.json"
     private val settingsFile = File(context.filesDir, applicationSettingsFileName)

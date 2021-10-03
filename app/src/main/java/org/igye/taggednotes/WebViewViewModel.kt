@@ -6,23 +6,19 @@ import android.view.ViewGroup
 import android.webkit.*
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import java.util.concurrent.ExecutorService
 
 abstract class WebViewViewModel(
     protected val appContext: Context,
     private val javascriptInterface: List<Any> = emptyList(),
     private val rootReactComponent: String,
-    private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
+    private val beThreadPool: ExecutorService
 ): ViewModel() {
     private var webView: WebView? = null
-    private lateinit var beMethods: Map<String, (defaultDispatcher: CoroutineDispatcher, String) -> Deferred<String>>
+    private lateinit var beMethods: Map<String, (String) -> String>
     protected val gson = Gson()
     protected val log = LoggerImpl(this.javaClass.simpleName)
 
@@ -68,11 +64,13 @@ abstract class WebViewViewModel(
     }
 
     @JavascriptInterface
-    fun invokeBeMethod(cbId:Long, methodName:String, args:String) = viewModelScope.launch(defaultDispatcher) {
-        if (!beMethods.containsKey(methodName)) {
-            returnDtoToFrontend(cbId, BeRespose<Any>(err = BeErr(code = 1000, msg = "backend method '$methodName' was not found")))
-        } else {
-            callFeCallback(cbId, beMethods[methodName]!!.invoke(defaultDispatcher, args)!!.await())
+    fun invokeBeMethod(cbId:Long, methodName:String, args:String) {
+        beThreadPool.submit {
+            if (!beMethods.containsKey(methodName)) {
+                returnDtoToFrontend(cbId, BeRespose<Any>(err = BeErr(code = 1000, msg = "backend method '$methodName' was not found")))
+            } else {
+                callFeCallback(cbId, beMethods[methodName]!!.invoke(args))
+            }
         }
     }
 

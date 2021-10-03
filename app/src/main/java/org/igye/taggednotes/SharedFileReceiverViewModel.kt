@@ -9,21 +9,26 @@ import kotlinx.coroutines.async
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.util.concurrent.ExecutorService
 
-class SharedFileReceiverViewModel(appContext: Context): WebViewViewModel(appContext = appContext, rootReactComponent = "SharedFileReceiver") {
+class SharedFileReceiverViewModel(appContext: Context, beThreadPool: ExecutorService): WebViewViewModel(
+    appContext = appContext,
+    rootReactComponent = "SharedFileReceiver",
+    beThreadPool = beThreadPool
+) {
     @Volatile lateinit var sharedFileUri: String
     @Volatile lateinit var onClose: () -> Unit
 
     @BeMethod
-    fun closeSharedFileReceiver(): Deferred<BeRespose<Boolean>> = viewModelScope.async {
+    fun closeSharedFileReceiver(): BeRespose<Boolean> {
         onClose()
-        BeRespose(data = true)
+        return BeRespose(data = true)
     }
 
     @BeMethod
-    fun getSharedFileInfo(): Deferred<BeRespose<Map<String, Any>>> = viewModelScope.async {
+    fun getSharedFileInfo(): BeRespose<Map<String, Any>> {
         val fileName = getFileName(sharedFileUri)
-        BeRespose(data = mapOf(
+        return BeRespose(data = mapOf(
             "uri" to sharedFileUri,
             "name" to fileName,
             "type" to getFileType(fileName),
@@ -32,8 +37,8 @@ class SharedFileReceiverViewModel(appContext: Context): WebViewViewModel(appCont
 
     data class SaveSharedFileArgs(val fileUri: String, val fileType: SharedFileType, val fileName: String)
     @BeMethod
-    fun saveSharedFile(args:SaveSharedFileArgs): Deferred<BeRespose<Any>> = viewModelScope.async {
-        if (args.fileUri != sharedFileUri) {
+    fun saveSharedFile(args:SaveSharedFileArgs): BeRespose<Any> {
+        return if (args.fileUri != sharedFileUri) {
             BeRespose<Any>(err = BeErr(code = 1, msg = "fileInfo.uri != sharedFileUri"))
         } else {
             BeRespose(data = copyFile(fileUri = args.fileUri, fileName = args.fileName, fileType = args.fileType))

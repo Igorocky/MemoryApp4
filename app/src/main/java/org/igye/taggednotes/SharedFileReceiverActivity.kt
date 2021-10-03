@@ -7,7 +7,7 @@ import android.os.Parcelable
 import androidx.activity.viewModels
 
 class SharedFileReceiverActivity : WebViewActivity<SharedFileReceiverViewModel>() {
-    override val viewModel: SharedFileReceiverViewModel  by viewModels {
+    override val viewModel: SharedFileReceiverViewModel by viewModels {
         (application as TaggedNotesApp).appContainer.viewModelFactory
     }
 

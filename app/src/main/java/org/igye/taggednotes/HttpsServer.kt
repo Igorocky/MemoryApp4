@@ -87,7 +87,7 @@ class HttpsServer(
                                 call.respond(status = HttpStatusCode.NotFound, message = msg)
                             } else {
                                 call.respondText(contentType = ContentType.Application.Json, status = HttpStatusCode.OK) {
-                                    beMethod.invoke(defaultDispatcher, call.receiveText()).await()
+                                    beMethod.invoke(call.receiveText())
                                 }
                             }
                         }
