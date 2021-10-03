@@ -268,6 +268,30 @@ class DataManagerInstrumentedTest {
     }
 
     @Test
+    fun getNotes_when_few_tags_are_passed_in_tagIdsToInclude_they_are_treated_as_AND() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2"
+        val note3TextExpected = "note3"
+        val note1Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).await() }.data!!.id
+        val note2Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note2TextExpected, listOf(tag2Id, tag3Id))).await() }.data!!.id
+        val note3Id = runBlocking { dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).await() }.data!!.id
+
+        //when
+        val notesResp = runBlocking { dm.getNotes(GetNotesArgs(tagIdsToInclude = listOf(tag2Id,tag3Id))).await() }
+
+        //then
+        val notes = notesResp.data!!.items
+        assertEquals(1, notes.size)
+        assertEquals(note2Id, notes[0].id)
+    }
+
+    @Test
     fun getNotes_searches_by_tags_to_exclude_only() {
         //given
         val dm = createInmemoryDataManager()
