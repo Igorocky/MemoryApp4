@@ -292,6 +292,30 @@ class DataManagerInstrumentedTest {
     }
 
     @Test
+    fun getNotes_doesnt_return_notes_having_at_least_one_tag_specified_as_excluded() {
+        //given
+        val dm = createInmemoryDataManager()
+        val tag1Id = dm.inTestSaveTag("tag1").id
+        val tag2Id = dm.inTestSaveTag("tag2").id
+        val tag3Id = dm.inTestSaveTag("tag3").id
+        val tag4Id = dm.inTestSaveTag("tag4").id
+        val note1TextExpected = "note1"
+        val note2TextExpected = "note2"
+        val note3TextExpected = "note3"
+        val note1Id = dm.saveNewNote(SaveNewNoteArgs(note1TextExpected, listOf(tag1Id, tag2Id))).data!!.id
+        val note2Id = dm.saveNewNote(SaveNewNoteArgs(note2TextExpected, listOf(tag2Id, tag3Id))).data!!.id
+        val note3Id = dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).data!!.id
+
+        //when
+        val notesResp = dm.getNotes(GetNotesArgs(tagIdsToExclude = listOf(tag2Id)))
+
+        //then
+        val notes = notesResp.data!!.items
+        assertEquals(1, notes.size)
+        assertEquals(note3Id, notes[0].id)
+    }
+
+    @Test
     fun getNotes_searches_by_tags_to_exclude_only() {
         //given
         val dm = createInmemoryDataManager()

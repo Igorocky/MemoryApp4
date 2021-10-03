@@ -4,7 +4,6 @@ import android.content.Context
 import android.database.sqlite.SQLiteStatement
 import android.net.Uri
 import androidx.core.content.FileProvider
-import kotlinx.coroutines.*
 import org.igye.taggednotes.Utils.isNotEmpty
 import java.io.File
 import java.io.FileOutputStream
@@ -23,7 +22,7 @@ class DataManager(
     private val dbName: String? = "tagged-notes-db",
 ) {
     val shareFile: AtomicReference<((Uri) -> Unit)?> = AtomicReference(null)
-    private val t = DB_V1
+    private val t = DB_NAMES
     private val repo: AtomicReference<Repository> = AtomicReference(createNewRepo())
     fun getRepo() = repo.get()
 
@@ -161,24 +160,26 @@ class DataManager(
                 max(n.${t.notes.createdAt}) as ${t.notes.createdAt}, 
                 max(n.${t.notes.isDeleted}) as ${t.notes.isDeleted}, 
                 max(n.${t.notes.text}) as ${t.notes.text},
-                (select group_concat(t.${t.noteToTag.tagId}) from ${t.noteToTag} t where t.${t.noteToTag.noteId} = n.${t.notes.id}) as tagIds"""
+                (select group_concat(t.${t.noteToTag.tagId}) from ${t.noteToTag} t where t.${t.noteToTag.noteId} = n.${t.notes.id}) as tagIds
+                from ${t.notes} n """
         )
-        val searchFilters = ArrayList<String>()
-        if (isNotEmpty(args.tagIdsToInclude)) {
-            query.append(" from ${t.noteToTag} nt inner join ${t.notes} n on nt.${t.noteToTag.noteId} = n.${t.notes.id}")
-            searchFilters.add(" nt.${t.noteToTag.tagId} in (${args.tagIdsToInclude!!.joinToString(separator = ",")})")
-        } else {
-            query.append(" from ${t.notes} n")
+        if (isNotEmpty(args.tagIdsToInclude) || isNotEmpty(args.tagIdsToExclude)) {
+            query.append(" inner join ${t.noteToTag} nt on n.${t.notes.id} = nt.${t.noteToTag.noteId}")
         }
-        if (isNotEmpty(args.tagIdsToExclude)) {
-            query.append(" inner join ${t.noteToTag} nte on n.${t.notes.id} = nte.${t.noteToTag.noteId}")
-        }
-        searchFilters.add("n.${t.notes.isDeleted} ${if(args.searchInDeleted)  "!= 0" else "= 0"}")
-        query.append(searchFilters.joinToString(prefix = " where ", separator = " and "))
+        val whereFilters = ArrayList<String>()
+        whereFilters.add("n.${t.notes.isDeleted} ${if(args.searchInDeleted)  "!= 0" else "= 0"}")
+        query.append(whereFilters.joinToString(prefix = " where ", separator = " and "))
         query.append(" group by n.${t.notes.id}")
-        if (isNotEmpty(args.tagIdsToExclude)) {
-            fun excludeTagId(tagId:Long) = " group_concat(':'||nte.${t.noteToTag.tagId}||':') not like '%:'||${tagId}||':%'"
-            query.append(" having ${args.tagIdsToExclude?.asSequence()?.map { excludeTagId(it) }?.joinToString(separator = " and ")}")
+        if (isNotEmpty(args.tagIdsToInclude) || isNotEmpty(args.tagIdsToExclude)) {
+            val havingFilters = ArrayList<String>()
+            fun addTagCondition(tagId:Long,include:Boolean) = " group_concat(':'||nt.${t.noteToTag.tagId}||':') ${if (include) "" else "not"} like '%:'||${tagId}||':%'"
+            if (isNotEmpty(args.tagIdsToInclude)) {
+                havingFilters.addAll(args.tagIdsToInclude?.map { addTagCondition(it, true) }!!)
+            }
+            if (isNotEmpty(args.tagIdsToExclude)) {
+                havingFilters.addAll(args.tagIdsToExclude?.map { addTagCondition(it, false) }!!)
+            }
+            query.append(havingFilters.joinToString(prefix = " having ", separator = " and "))
         }
         return getRepo().readableDatabase.doInTransaction(errCode = ERR_GET_NOTES) {
             val (allRowsFetched, result) = getRepo().select(
@@ -207,7 +208,7 @@ class DataManager(
         } else if (params.text != null && params.text.isBlank()) {
             BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_TEXT_EMPTY, msg = "Content of a note must not be empty."))
         } else {
-            getRepo().writableDatabase.doInTransaction(errCode = ERR_UPDATE_NOTE) transaction@{
+            getRepo().writableDatabase.doInTransaction(errCode = ERR_UPDATE_NOTE) {
                 if (params.text != null || params.isDeleted != null) {
                     val text = params.text?.trim()
                     val query = StringBuilder("update ${t.notes} set ")
@@ -229,14 +230,14 @@ class DataManager(
                         stmt.executeUpdateDelete()
                     }
                     if (updatedCnt != 1) {
-                        return@transaction BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_CNT_IS_NOT_ONE, msg = "updatedCnt != 1"))
+                        return@doInTransaction BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_CNT_IS_NOT_ONE, msg = "updatedCnt != 1"))
                     }
                 }
                 if (params.tagIds != null) {
                     getRepo().deleteNoteToTagStmt!!.exec(params.id)
                     params.tagIds.forEach { tagId ->
                         if (getRepo().insertNoteToTagStmt!!.exec(params.id,tagId) == -1L) {
-                            return@transaction BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_TAG_REF_NEGATIVE_NEW_ID, "noteToTag.newId == -1"))
+                            return@doInTransaction BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_TAG_REF_NEGATIVE_NEW_ID, "noteToTag.newId == -1"))
                         }
                     }
                 }
@@ -321,7 +322,9 @@ class DataManager(
         return BeRespose(data = Unit)
     }
 
-    fun close() = getRepo().close()
+    fun close() {
+        getRepo().close()
+    }
 
     private val backupDir = Utils.getBackupsDir(context)
 

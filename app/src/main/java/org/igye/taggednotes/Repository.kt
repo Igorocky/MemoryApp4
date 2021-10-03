@@ -10,7 +10,7 @@ import java.lang.Exception
 import java.time.Instant
 
 class Repository(context: Context, dbName: String?) : SQLiteOpenHelper(context, dbName, null, 1) {
-    val t = DB_V1
+    val t = DB_NAMES
     override fun onCreate(db: SQLiteDatabase) {
         db.transaction {
             execSQL("""
@@ -208,3 +208,5 @@ object DB_V1 {
         val tagId = "tag_id"
     }
 }
+
+val DB_NAMES = DB_V1
