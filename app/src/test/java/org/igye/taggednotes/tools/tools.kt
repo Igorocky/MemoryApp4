@@ -4,7 +4,6 @@ import org.igye.taggednotes.Utils
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
-import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import java.util.regex.Pattern.compile
@@ -23,13 +22,15 @@ object Tools {
     private val DEV_FILE_PROVIDER_NAME = "org.igye.taggednotes.fileprovider.dev"
     private val RELEASE_FILE_PROVIDER_NAME = "org.igye.taggednotes.fileprovider"
 
+    private val DEV_APP_BACKGROUND_COLOR = "<body style=\"background-color: lightseagreen\">"
+    private val RELEASE_APP_BACKGROUND_COLOR = "<body>"
+
     fun release() {
         checkWorkingDirectory()
         changeNamesFromDevToRelease()
         val releaseVersion = getCurrVersionName()
         val tagName = "Release-$releaseVersion"
         commit(tagName)
-//        File("./app/build").deleteRecursively()
         buildProject()
         tag(tagName)
         incProjectVersion()
@@ -42,12 +43,14 @@ object Tools {
         changeApplicationId(DEV_APP_ID, RELEASE_APP_ID)
         changeApplicationName(DEV_APP_NAME, RELEASE_APP_NAME)
         changeFileProviderName(DEV_FILE_PROVIDER_NAME, RELEASE_FILE_PROVIDER_NAME)
+        changeAppBackgroundColor(DEV_APP_BACKGROUND_COLOR, RELEASE_APP_BACKGROUND_COLOR)
     }
 
     private fun changeNamesFromReleaseToDev() {
         changeApplicationId(RELEASE_APP_ID, DEV_APP_ID)
         changeApplicationName(RELEASE_APP_NAME, DEV_APP_NAME)
         changeFileProviderName(RELEASE_FILE_PROVIDER_NAME, DEV_FILE_PROVIDER_NAME)
+        changeAppBackgroundColor(RELEASE_APP_BACKGROUND_COLOR, DEV_APP_BACKGROUND_COLOR)
     }
 
     private fun changeApplicationId(from:String, to:String) {
@@ -60,6 +63,10 @@ object Tools {
 
     private fun changeFileProviderName(from:String, to:String) {
         replaceSubstringInFile(File("./app/src/main/AndroidManifest.xml"), from, to)
+    }
+
+    private fun changeAppBackgroundColor(from:String, to:String) {
+        replaceSubstringInFile(File("./app/src/main/assets/index.html"), from, to)
     }
 
     private fun checkWorkingDirectory() {
