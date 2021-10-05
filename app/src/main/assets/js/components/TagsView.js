@@ -22,7 +22,7 @@ const TagsView = ({query,openView,setPageTitle}) => {
             return RE.table({},
                 RE.tbody({},
                     allTags.map(tag =>
-                        RE.tr({key:tag.id, onClick: () => setFocusedTagId(prev=> prev==tag.id?null:tag.id), style:{backgroundColor: focusedTagId === tag.id && !editMode ? 'lightgrey' : undefined}},
+                        RE.tr({key:tag.id, onClick: () => editMode ? null : setFocusedTagId(prev=> prev==tag.id?null:tag.id), style:{backgroundColor: focusedTagId === tag.id && !editMode ? 'lightgrey' : undefined}},
                             RE.td({}, renderTag({tag})),
                             RE.td({},
                                 focusedTagId === tag.id && !editMode
@@ -96,7 +96,6 @@ const TagsView = ({query,openView,setPageTitle}) => {
                     await showError(resp.err)
                     return {err:true}
                 } else {
-                    console.log('resp.data', resp.data)
                     setAllTags(prev => [resp.data, ...prev])
                     return {}
                 }

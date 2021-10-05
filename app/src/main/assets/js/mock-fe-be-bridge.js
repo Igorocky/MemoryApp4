@@ -4,11 +4,19 @@ function createFeBeBridgeForUiTestMode() {
     const mockedBeFunctions = {}
 
     function okResponse(data) {
-        return {data}
+        return {
+            data,
+            mapData: mapper => okResponse(mapper(data))
+        }
     }
 
     function errResponse(errCode, msg) {
-        return {err: {code:errCode,msg}}
+        return {
+            err: {code:errCode,msg},
+            mapData() {
+                return this
+            }
+        }
     }
 
     const TAGS = []
@@ -62,7 +70,6 @@ function createFeBeBridgeForUiTestMode() {
     }
 
     mockedBeFunctions.getNotes = ({tagIdsToInclude=[],tagIdsToExclude=[],searchInDeleted = false}) => {
-        console.log(tagIdsToInclude, 'tagIdsToInclude')
         function getAllTagIdsOfNote({noteId}) {
             return NOTES_TO_TAGS
                 .filter(({noteId:id,tagId})=>noteId==id)
@@ -78,10 +85,14 @@ function createFeBeBridgeForUiTestMode() {
         }
         let result = NOTES
             .filter(note => searchInDeleted && note.isDeleted || !searchInDeleted && !note.isDeleted)
-            .filter(note => hasTags({noteId:note.id,tagIds:tagIdsToInclude}))
-            .filter(note => !hasTags({noteId:note.id, tagIds:tagIdsToExclude, atLeastOne:true}))
+            .filter(note => tagIdsToInclude.length == 0 || hasTags({noteId:note.id,tagIds:tagIdsToInclude}))
+            .filter(note => tagIdsToExclude.length == 0 || !hasTags({noteId:note.id, tagIds:tagIdsToExclude, atLeastOne:true}))
             .map(note => ({...note, tagIds:getAllTagIdsOfNote({noteId:note.id})}))
         return okResponse({items:result,complete:true})
+    }
+
+    mockedBeFunctions.getRemainingTagIds = (args) => {
+        return mockedBeFunctions.getNotes(args).mapData(({items}) => items.flatMap(n => n.tagIds).distinct())
     }
 
     mockedBeFunctions.updateNote = ({id,text,tagIds,isDeleted}) => {

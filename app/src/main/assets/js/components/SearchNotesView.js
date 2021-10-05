@@ -5,6 +5,7 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
 
     const [allTags, setAllTags] = useState(null)
     const [allTagsMap, setAllTagsMap] = useState(null)
+    const [remainingTagIds, setRemainingTagIds] = useState(null)
     const [editFilterMode, setEditFilterMode] = useState(true)
     const [tagsToInclude, setTagsToInclude] = useState([])
     const [tagsToExclude, setTagsToExclude] = useState([])
@@ -25,15 +26,29 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
         }
     }, [allTags])
 
-    async function doSearch() {
-        setEditFilterMode(false)
-        setFocusedNote(null)
-        let notesResp = await be.getNotes({
+    useEffect(async () => {
+        const resp = await be.getRemainingTagIds(createGetNotesRequest())
+        if (resp.err) {
+            await showError(resp.err)
+        } else {
+            const tagIdsToInclude = tagsToInclude.map(t => t.id)
+            const tagIdsToExclude = tagsToExclude.map(t => t.id)
+            setRemainingTagIds(resp.data.filter(id => !tagIdsToInclude.includes(id) && !tagIdsToExclude.includes(id)))
+        }
+    }, [tagsToInclude, tagsToExclude])
+
+    function createGetNotesRequest() {
+        return {
             tagIdsToInclude: tagsToInclude.map(t => t.id),
             tagIdsToExclude: tagsToExclude.map(t => t.id),
             searchInDeleted
-        })
-        console.log('notesResp', notesResp)
+        }
+    }
+
+    async function doSearch() {
+        setEditFilterMode(false)
+        setFocusedNote(null)
+        let notesResp = await be.getNotes(createGetNotesRequest())
         if (notesResp.err) {
             await showError(notesResp.err)
             editFilter()
@@ -44,6 +59,9 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
 
     function editFilter() {
         setEditFilterMode(true)
+        //need to update remaining tags because tags on some notes could be changed when showing search results
+        setTagsToInclude(prev => prev.filter(() => true))
+        setTagsToExclude(prev => prev.filter(() => true))
     }
 
     function renderSearchButton() {
@@ -56,20 +74,32 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
                 renderSearchButton(),
                 RE.Paper({},
                     re(TagSelector,{
-                        allTags: allTags,
+                        allTags: hasNoValue(allTagsMap) ? null : remainingTagIds?.map(tagId => allTagsMap[tagId]),
                         selectedTags: tagsToInclude,
-                        onTagRemoved:tag=>setTagsToInclude(prev=>prev.filter(t=>t.id!=tag.id)),
-                        onTagSelected:tag=>setTagsToInclude(prev=>[...prev,tag]),
+                        onTagRemoved:tag=>{
+                            setRemainingTagIds(null)
+                            setTagsToInclude(prev=>prev.filter(t=>t.id!=tag.id))
+                        },
+                        onTagSelected:tag=>{
+                            setRemainingTagIds(null)
+                            setTagsToInclude(prev=>[...prev,tag])
+                        },
                         label: 'Include',
                         color:'primary',
                     })
                 ),
                 RE.Paper({},
                     re(TagSelector,{
-                        allTags: allTags,
+                        allTags: hasNoValue(allTagsMap) ? null : remainingTagIds?.map(tagId => allTagsMap[tagId]),
                         selectedTags: tagsToExclude,
-                        onTagRemoved:tag=>setTagsToExclude(prev=>prev.filter(t=>t.id!=tag.id)),
-                        onTagSelected:tag=>setTagsToExclude(prev=>[...prev,tag]),
+                        onTagRemoved:tag=>{
+                            setRemainingTagIds(null)
+                            setTagsToExclude(prev=>prev.filter(t=>t.id!=tag.id))
+                        },
+                        onTagSelected:tag=>{
+                            setRemainingTagIds(null)
+                            setTagsToExclude(prev=>[...prev,tag])
+                        },
                         label: 'Exclude',
                         color:'secondary',
                     })

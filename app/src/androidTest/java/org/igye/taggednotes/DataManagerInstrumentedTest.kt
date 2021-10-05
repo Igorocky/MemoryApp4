@@ -251,7 +251,7 @@ class DataManagerInstrumentedTest {
         val note3Id = dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).data!!.id
 
         //when
-        val notesResp = dm.getNotes(GetNotesArgs(tagIdsToInclude = listOf(tag3Id)))
+        val notesResp = dm.getNotes(GetNotesArgs(tagIdsToInclude = setOf(tag3Id)))
 
         //then
         val notes = notesResp.data!!.items
@@ -283,7 +283,7 @@ class DataManagerInstrumentedTest {
         val note3Id = dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).data!!.id
 
         //when
-        val notesResp = dm.getNotes(GetNotesArgs(tagIdsToInclude = listOf(tag2Id,tag3Id)))
+        val notesResp = dm.getNotes(GetNotesArgs(tagIdsToInclude = setOf(tag2Id,tag3Id)))
 
         //then
         val notes = notesResp.data!!.items
@@ -307,7 +307,7 @@ class DataManagerInstrumentedTest {
         val note3Id = dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).data!!.id
 
         //when
-        val notesResp = dm.getNotes(GetNotesArgs(tagIdsToExclude = listOf(tag2Id)))
+        val notesResp = dm.getNotes(GetNotesArgs(tagIdsToExclude = setOf(tag2Id)))
 
         //then
         val notes = notesResp.data!!.items
@@ -331,7 +331,7 @@ class DataManagerInstrumentedTest {
         val note3Id = dm.saveNewNote(SaveNewNoteArgs(note3TextExpected, listOf(tag3Id, tag4Id))).data!!.id
 
         //when
-        val notesResp = dm.getNotes(GetNotesArgs(tagIdsToExclude = listOf(tag1Id,tag4Id)))
+        val notesResp = dm.getNotes(GetNotesArgs(tagIdsToExclude = setOf(tag1Id,tag4Id)))
 
         //then
         val notes = notesResp.data!!.items
@@ -364,7 +364,7 @@ class DataManagerInstrumentedTest {
         val note4Id = dm.saveNewNote(SaveNewNoteArgs(note4TextExpected, listOf(tag4Id, tag5Id))).data!!.id
 
         //when
-        val notesResp = dm.getNotes(GetNotesArgs(tagIdsToInclude = listOf(tag3Id), tagIdsToExclude = listOf(tag2Id)))
+        val notesResp = dm.getNotes(GetNotesArgs(tagIdsToInclude = setOf(tag3Id), tagIdsToExclude = setOf(tag2Id)))
 
         //then
         val notes = notesResp.data!!.items

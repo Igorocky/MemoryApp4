@@ -18,6 +18,7 @@ const be = {
 
     saveNewTag: createBeFunction('saveNewTag'),
     getAllTags: createBeFunction('getTags'),
+    getRemainingTagIds: createBeFunction('getRemainingTagIds'),
     updateTag: createBeFunction('updateTag'),
     deleteTag: createBeFunction('deleteTag'),
     saveNewNote: createBeFunction('saveNewNote'),

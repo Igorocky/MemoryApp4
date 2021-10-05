@@ -25,6 +25,7 @@ class DataManager(
     private val t = DB_NAMES
     private val repo: AtomicReference<Repository> = AtomicReference(createNewRepo())
     fun getRepo() = repo.get()
+    private val tagStat = TagsStatHolder(repositoryGetter = this::getRepo)
 
     private val ERR_CREATE_TAG_NAME_EMPTY = 101
     private val ERR_CREATE_TAG_NAME_DUPLICATED = 102
@@ -71,6 +72,7 @@ class DataManager(
                 if (newTag.id == -1L) {
                     BeRespose(err = BeErr(code = ERR_CREATE_TAG_NEGATIVE_NEW_ID, msg = "newId == -1"))
                 } else {
+                    tagStat.tagsCouldChange()
                     BeRespose(data = newTag)
                 }
             }
@@ -101,6 +103,7 @@ class DataManager(
     @BeMethod
     fun deleteTag(args:DeleteTagArgs): BeRespose<Int> {
         return getRepo().writableDatabase.doInTransaction(errCode = ERR_DELETE_TAG) {
+            tagStat.tagsCouldChange()
             BeRespose(data = getRepo().deleteTagStmt!!.exec(args.id))
         }
     }
@@ -136,6 +139,7 @@ class DataManager(
         return if (args.text.isBlank()) {
             BeRespose(err = BeErr(code = ERR_CREATE_NOTE_TEXT_EMPTY, msg = "Note's content should not be empty."))
         } else {
+            tagStat.tagsCouldChange()
             getRepo().writableDatabase.doInTransaction(errCode = ERR_CREATE_NOTE) transaction@{
                 val newNote = getRepo().insertNoteStmt!!.exec(args.text)
                 if (newNote.id == -1L) {
@@ -152,17 +156,28 @@ class DataManager(
         }
     }
 
-    data class GetNotesArgs(val tagIdsToInclude: List<Long>? = null, val tagIdsToExclude: List<Long>? = null, val searchInDeleted: Boolean = false, val rowsMax: Long = 100)
+    data class GetNotesArgs(val tagIdsToInclude: Set<Long>? = null, val tagIdsToExclude: Set<Long>? = null, val searchInDeleted: Boolean = false, val rowsMax: Long = 100)
     @BeMethod
     fun getNotes(args:GetNotesArgs): BeRespose<ListOfItems<Note>> {
+        fun getLeastUsedTagId(tagIds: Set<Long>): Long {
+            val stat = tagStat.getTagStat()
+            return tagIds.minByOrNull { stat[it]?:0 }!!
+        }
         val query = StringBuilder(
             """select n.${t.notes.id}, 
                 max(n.${t.notes.createdAt}) as ${t.notes.createdAt}, 
                 max(n.${t.notes.isDeleted}) as ${t.notes.isDeleted}, 
                 max(n.${t.notes.text}) as ${t.notes.text},
                 (select group_concat(t.${t.noteToTag.tagId}) from ${t.noteToTag} t where t.${t.noteToTag.noteId} = n.${t.notes.id}) as tagIds
-                from ${t.notes} n """
+                from ${t.notes} n
+                """
         )
+        var leastUsedTagId: Long? = null
+        if (isNotEmpty(args.tagIdsToInclude)) {
+            leastUsedTagId = getLeastUsedTagId(args.tagIdsToInclude!!)
+            query.append(" inner join ${t.noteToTag} nt1 ")
+            query.append(" on n.${t.notes.id} = nt1.${t.noteToTag.noteId} and nt1.${t.noteToTag.tagId} = ${getLeastUsedTagId(args.tagIdsToInclude!!)}")
+        }
         if (isNotEmpty(args.tagIdsToInclude) || isNotEmpty(args.tagIdsToExclude)) {
             query.append(" inner join ${t.noteToTag} nt on n.${t.notes.id} = nt.${t.noteToTag.noteId}")
         }
@@ -170,11 +185,11 @@ class DataManager(
         whereFilters.add("n.${t.notes.isDeleted} ${if(args.searchInDeleted)  "!= 0" else "= 0"}")
         query.append(whereFilters.joinToString(prefix = " where ", separator = " and "))
         query.append(" group by n.${t.notes.id}")
-        if (isNotEmpty(args.tagIdsToInclude) || isNotEmpty(args.tagIdsToExclude)) {
+        if (isNotEmpty(args.tagIdsToInclude) && args.tagIdsToInclude!!.size > 1 || isNotEmpty(args.tagIdsToExclude)) {
             val havingFilters = ArrayList<String>()
             fun addTagCondition(tagId:Long,include:Boolean) = " group_concat(':'||nt.${t.noteToTag.tagId}||':') ${if (include) "" else "not"} like '%:'||${tagId}||':%'"
             if (isNotEmpty(args.tagIdsToInclude)) {
-                havingFilters.addAll(args.tagIdsToInclude?.map { addTagCondition(it, true) }!!)
+                havingFilters.addAll((args.tagIdsToInclude!!-leastUsedTagId!!)?.map { addTagCondition(it, true) }!!)
             }
             if (isNotEmpty(args.tagIdsToExclude)) {
                 havingFilters.addAll(args.tagIdsToExclude?.map { addTagCondition(it, false) }!!)
@@ -200,6 +215,12 @@ class DataManager(
         }
     }
 
+    @BeMethod
+    fun getRemainingTagIds(args:GetNotesArgs): BeRespose<Set<Long>> {
+        return getNotes(args.copy(rowsMax = Long.MAX_VALUE))
+            .mapData { it.items.asSequence().flatMap { it.tagIds }.toSet() }
+    }
+
     data class UpdateNoteArgs(val id:Long, val text:String? = null, val isDeleted: Boolean? = null, val tagIds: List<Long>? = null)
     @BeMethod
     fun updateNote(params:UpdateNoteArgs): BeRespose<Int> {
@@ -208,6 +229,7 @@ class DataManager(
         } else if (params.text != null && params.text.isBlank()) {
             BeRespose(err = BeErr(code = ERR_UPDATE_NOTE_TEXT_EMPTY, msg = "Content of a note must not be empty."))
         } else {
+            tagStat.tagsCouldChange()
             getRepo().writableDatabase.doInTransaction(errCode = ERR_UPDATE_NOTE) {
                 if (params.text != null || params.isDeleted != null) {
                     val text = params.text?.trim()
@@ -288,6 +310,7 @@ class DataManager(
         val databasePath: File = context.getDatabasePath(dbName)
         val backupFile = File(backupDir, args.backupName)
         try {
+            tagStat.reset()
             getRepo().close()
             val zipFile = ZipFile(backupFile)
             val entries = zipFile.entries()
@@ -323,6 +346,7 @@ class DataManager(
     }
 
     fun close() {
+        tagStat.reset()
         getRepo().close()
     }
 
