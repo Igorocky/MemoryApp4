@@ -133,7 +133,7 @@ const SearchNotesView = ({query,openView,setPageTitle}) => {
                     label: tag.name,
                     color:'secondary',
                 })),
-                iconButton({iconName:'tune',onClick:editFilter})
+                iconButton({iconName:'youtube_searched_for',onClick:editFilter})
             )
         }
     }
